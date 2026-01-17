@@ -1,0 +1,83 @@
+{
+  "name": "hello-agent",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "hello-agent/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/hello-agent"
+      },
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      }
+    },
+    "prune-lockfile": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "outputs": [
+        "{workspaceRoot}/dist/hello-agent/package.json",
+        "{workspaceRoot}/dist/hello-agent/package-lock.json"
+      ],
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": ["{workspaceRoot}/dist/hello-agent/workspace_modules"],
+      "executor": "@nx/js:copy-workspace-modules",
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "serve": {
+      "executor": "@nx/vite:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "hello-agent:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "hello-agent:build:development",
+          "hmr": true
+        },
+        "production": {
+          "buildTarget": "hello-agent:build:production",
+          "hmr": false
+        }
+      }
+    },
+    "preview": {
+      "dependsOn": ["build"],
+      "executor": "@nx/vite:preview-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "hello-agent:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "hello-agent:build:development"
+        },
+        "production": {
+          "buildTarget": "hello-agent:build:production"
+        }
+      }
+    }
+  }
+}

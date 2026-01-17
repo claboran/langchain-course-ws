@@ -4,10 +4,37 @@
   "license": "MIT",
   "scripts": {},
   "private": true,
-  "dependencies": {},
   "devDependencies": {
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
     "@nx/js": "22.3.3",
+    "@nx/nest": "^22.3.3",
+    "@nx/node": "22.3.3",
+    "@nx/vite": "^22.3.3",
+    "@nx/web": "22.3.3",
+    "@nx/webpack": "22.3.3",
     "@nx/workspace": "22.3.3",
-    "nx": "22.3.3"
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@swc/helpers": "~0.5.11",
+    "@types/node": "20.19.9",
+    "@vitest/ui": "^4.0.0",
+    "jiti": "2.4.2",
+    "jsdom": "~22.1.0",
+    "nx": "22.3.3",
+    "prettier": "~3.6.2",
+    "tslib": "^2.3.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.17",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "axios": "^1.6.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0"
   }
 }
