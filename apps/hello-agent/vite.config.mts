@@ -2,11 +2,12 @@
 import { defineConfig } from 'vite';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+import swc from 'unplugin-swc';
 import { resolve } from 'path';
 
 export default defineConfig({
   root: import.meta.dirname,
-  cacheDir: '../node_modules/.vite/hello-agent',
+  cacheDir: '../../node_modules/.vite/apps/hello-agent',
 
   server: {
     port: 4200,
@@ -19,13 +20,26 @@ export default defineConfig({
   },
 
   plugins: [
+    swc.vite({
+      jsc: {
+        parser: {
+          syntax: 'typescript',
+          decorators: true,
+        },
+        transform: {
+          legacyDecorator: true,
+          decoratorMetadata: true,
+        },
+        target: 'es2021',
+      },
+    }),
     nxViteTsPaths(),
     nxCopyAssetsPlugin(['*.md'])
   ],
 
   // Build configuration for Node.js
   build: {
-    outDir: '../dist/hello-agent',
+    outDir: '../../dist/apps/hello-agent',
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
@@ -56,7 +70,7 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../coverage/hello-agent',
+      reportsDirectory: '../../coverage/apps/hello-agent',
       provider: 'v8' as const,
     },
   },

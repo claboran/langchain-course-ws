@@ -1,7 +1,7 @@
 {
   "name": "hello-agent",
-  "$schema": "../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "hello-agent/src",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/hello-agent/src",
   "projectType": "application",
   "tags": [],
   "targets": {
@@ -10,7 +10,7 @@
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/hello-agent"
+        "outputPath": "dist/apps/hello-agent"
       },
       "configurations": {
         "development": {
@@ -26,8 +26,8 @@
       "cache": true,
       "executor": "@nx/js:prune-lockfile",
       "outputs": [
-        "{workspaceRoot}/dist/hello-agent/package.json",
-        "{workspaceRoot}/dist/hello-agent/package-lock.json"
+        "{workspaceRoot}/dist/apps/hello-agent/package.json",
+        "{workspaceRoot}/dist/apps/hello-agent/package-lock.json"
       ],
       "options": {
         "buildTarget": "build"
@@ -36,7 +36,7 @@
     "copy-workspace-modules": {
       "dependsOn": ["build"],
       "cache": true,
-      "outputs": ["{workspaceRoot}/dist/hello-agent/workspace_modules"],
+      "outputs": ["{workspaceRoot}/dist/apps/hello-agent/workspace_modules"],
       "executor": "@nx/js:copy-workspace-modules",
       "options": {
         "buildTarget": "build"

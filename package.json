@@ -2,6 +2,7 @@
   "name": "@langchain-course-ws/source",
   "version": "0.0.0",
   "license": "MIT",
+  "type": "module",
   "scripts": {},
   "private": true,
   "devDependencies": {
@@ -25,6 +26,7 @@
     "prettier": "~3.6.2",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
+    "unplugin-swc": "^1.5.9",
     "vite": "^7.3.1",
     "vitest": "^4.0.17",
     "webpack-cli": "^5.1.4"
@@ -34,6 +36,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "axios": "^1.6.0",
+    "nest-commander": "^3.20.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0"
   }
