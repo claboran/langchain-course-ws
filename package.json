@@ -2,9 +2,8 @@
   "name": "@langchain-course-ws/source",
   "version": "0.0.0",
   "license": "MIT",
-  "type": "module",
   "scripts": {
-    "hello-agent:dev": "nx serve hello-agent",
+    "hello-agent:dev": "ts-node -P apps/hello-agent/tsconfig.app.json apps/hello-agent/src/main.ts",
     "hello-agent:build": "nx build hello-agent",
     "hello-agent:test": "nx test hello-agent"
   },
@@ -28,6 +27,7 @@
     "jsdom": "~22.1.0",
     "nx": "22.3.3",
     "prettier": "~3.6.2",
+    "ts-node": "^10.9.2",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
     "unplugin-swc": "^1.5.9",

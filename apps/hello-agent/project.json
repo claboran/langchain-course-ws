@@ -45,39 +45,6 @@
     "prune": {
       "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
       "executor": "nx:noop"
-    },
-    "serve": {
-      "executor": "@nx/vite:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "hello-agent:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "hello-agent:build:development",
-          "hmr": true
-        },
-        "production": {
-          "buildTarget": "hello-agent:build:production",
-          "hmr": false
-        }
-      }
-    },
-    "preview": {
-      "dependsOn": ["build"],
-      "executor": "@nx/vite:preview-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "hello-agent:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "hello-agent:build:development"
-        },
-        "production": {
-          "buildTarget": "hello-agent:build:production"
-        }
-      }
     }
   }
 }
