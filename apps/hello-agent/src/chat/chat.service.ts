@@ -11,26 +11,33 @@ export class ChatService {
 
   async chat(message: string): Promise<string> {
     try {
-      // Create a structured output model
-      const structuredModel = this.model.withStructuredOutput(AskResultSchema);
-
-      // System prompt
-      const systemPrompt = `You are a helpful assistant that answers questions clearly and concisely.`;
-
       // Invoke the model with system and user messages
-      const result = await structuredModel.invoke([
-        { role: 'system', content: systemPrompt },
+      const result = await this.createStructuredModel().invoke([
+        { role: 'system', content: this.createSystemPrompt() },
         { role: 'user', content: message },
-      ]);
+      ]) as AskResult;
 
-      const typedResult = result as AskResult;
-
-      // Format the output
-      return `Summary: ${typedResult.summary}\nConfidence: ${(typedResult.confidence * 100).toFixed(1)}%`;
+      // Extra validation step using Zod parse() to check against the defined schema
+      // keep the temperature low to ensure a consistent structured output!
+      return this.createAskResultAsString(AskResultSchema.parse(result));
     } catch (error) {
       console.error('Error in chat service:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to get response from AI: ${errorMessage}`);
     }
+  }
+
+  private createSystemPrompt(): string {
+    return `You are a helpful assistant that answers questions clearly and concisely.`;
+  }
+
+  private createStructuredModel() {
+    // Create a structured output model
+    // This is the important part, since it tells the model to return structured data
+    return this.model.withStructuredOutput(AskResultSchema);
+  }
+
+  private createAskResultAsString(result: AskResult): string {
+    return `Summary: ${result.summary}\nConfidence: ${(result.confidence * 100).toFixed(1)}%`;
   }
 }

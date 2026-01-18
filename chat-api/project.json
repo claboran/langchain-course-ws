@@ -1,0 +1,72 @@
+{
+  "name": "chat-api",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "chat-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/chat-api"
+      },
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      }
+    },
+    "prune-lockfile": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "outputs": [
+        "{workspaceRoot}/dist/chat-api/package.json",
+        "{workspaceRoot}/dist/chat-api/package-lock.json"
+      ],
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": ["{workspaceRoot}/dist/chat-api/workspace_modules"],
+      "executor": "@nx/js:copy-workspace-modules",
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx ts-node --project chat-api/tsconfig.app.json chat-api/src/main.ts"
+      }
+    },
+    "preview": {
+      "dependsOn": ["build"],
+      "executor": "@nx/vite:preview-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "chat-api:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "chat-api:build:development"
+        },
+        "production": {
+          "buildTarget": "chat-api:build:production"
+        }
+      }
+    }
+  }
+}
