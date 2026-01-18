@@ -1,0 +1,20 @@
+{
+  "name": "model-provider",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/model-provider/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/model-provider",
+        "tsConfig": "libs/model-provider/tsconfig.lib.json",
+        "packageJson": "libs/model-provider/package.json",
+        "main": "libs/model-provider/src/index.ts",
+        "assets": ["libs/model-provider/*.md"]
+      }
+    }
+  }
+}

@@ -1,25 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable } from '@nestjs/common';
 import { ChatMistralAI } from '@langchain/mistralai';
+import { CHAT_MISTRAL_AI } from '@langchain-course-ws/model-provider';
 import { AskResult, AskResultSchema } from './chat.model';
 
 @Injectable()
 export class ChatService {
-  private model: ChatMistralAI;
-
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('MISTRAL_API_KEY');
-
-    if (!apiKey) {
-      throw new Error('MISTRAL_API_KEY is not configured in .env file');
-    }
-
-    this.model = new ChatMistralAI({
-      model: 'mistral-large-latest',
-      apiKey: apiKey,
-      temperature: 0.2,
-    });
-  }
+  constructor(
+    @Inject(CHAT_MISTRAL_AI) private readonly model: ChatMistralAI,
+  ) {}
 
   async chat(message: string): Promise<string> {
     try {

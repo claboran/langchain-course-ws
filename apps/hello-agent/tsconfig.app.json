@@ -9,5 +9,9 @@
     "target": "es2021",
     "moduleResolution": "node"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "ts-node": {
+    "swc": true,
+    "require": ["tsconfig-paths/register"]
+  }
 }

@@ -5,6 +5,7 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import swc from 'unplugin-swc';
 import { resolve } from 'path';
 
+// @ts-ignore
 export default defineConfig({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/apps/hello-agent',
@@ -30,7 +31,7 @@ export default defineConfig({
           legacyDecorator: true,
           decoratorMetadata: true,
         },
-        target: 'es2021',
+        target: 'esnext',
       },
     }),
     nxViteTsPaths(),
