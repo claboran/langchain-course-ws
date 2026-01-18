@@ -1,0 +1,85 @@
+import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+import { ChatMessage } from '../types/chat-message';
+
+@Component({
+  selector: 'lib-chat-bubble',
+  imports: [],
+  template: `
+    @if (message().type === 'user') {
+      <!-- User message (left side) -->
+      <div class="chat chat-start">
+        <div class="chat-image avatar">
+          <div class="w-10 rounded-full bg-neutral text-neutral-content">
+            <div class="flex h-full items-center justify-center font-semibold">
+              {{ userInitials() }}
+            </div>
+          </div>
+        </div>
+        <div class="chat-header">
+          {{ userName() }}
+          <time class="ml-2 text-xs opacity-50">{{ formatTime(message().timestamp) }}</time>
+        </div>
+        <div [class]="bubbleClasses()">
+          {{ message().content }}
+        </div>
+      </div>
+    } @else {
+      <!-- Assistant message (right side) -->
+      <div class="chat chat-end">
+        <div class="chat-image avatar">
+          <div class="w-10 rounded-full bg-accent">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="h-full w-full p-2 text-accent-content"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="chat-header">
+          Assistant
+          <time class="ml-2 text-xs opacity-50">{{ formatTime(message().timestamp) }}</time>
+        </div>
+        <div [class]="bubbleClasses()">
+          {{ message().content }}
+        </div>
+      </div>
+    }
+  `,
+  styles: `
+    :host {
+      display: block;
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ChatBubbleComponent {
+  // Required inputs
+  message = input.required<ChatMessage>();
+  userName = input.required<string>();
+  userInitials = input.required<string>();
+
+  // Style customization inputs
+  bgColor = input<string>('');
+  textColor = input<string>('');
+  fontSize = input<string>('text-sm');
+
+  // Computed class string
+  bubbleClasses = computed(() =>
+    `chat-bubble ${this.bgColor()} ${this.textColor()} ${this.fontSize()}`
+  );
+
+  /**
+   * Format timestamp for display
+   */
+  formatTime(date: Date): string {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+}

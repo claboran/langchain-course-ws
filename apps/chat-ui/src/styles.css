@@ -2,6 +2,7 @@
 
 /* Define source paths using @source directive (Tailwind v4 feature) */
 @source '../../chat-ui/**/*.{html,css,js,ts,tsx,jsx}';
+@source '../../../libs/**/*.{html,css,js,ts,tsx,jsx}';
 
 /* Configure DaisyUI plugin directly in CSS (Tailwind v4 feature) */
 @plugin "daisyui" {

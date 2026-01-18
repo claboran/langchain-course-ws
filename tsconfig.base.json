@@ -15,7 +15,12 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@langchain-course-ws/model-provider": ["libs/model-provider/src/index.ts"]
+      "@langchain-course-ws/model-provider": [
+        "libs/model-provider/src/index.ts"
+      ],
+      "@langchain-course-ws/chat-components": [
+        "libs/chat-components/src/index.ts"
+      ]
     }
   },
   "exclude": ["node_modules", "tmp"]
