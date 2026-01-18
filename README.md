@@ -80,6 +80,14 @@ Nx Console is an editor extension that enriches your developer experience. It le
 
 [Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 
+## Run the hello-chat
+
+✅ Dev mode works: npm run hello-agent:dev -- chat "Testing ts-node"
+
+✅ Build works: npx nx build hello-agent
+
+✅ Built CLI works: node dist/apps/hello-agent/main.js chat "Testing build"
+
 ## Useful links
 
 Learn more:
