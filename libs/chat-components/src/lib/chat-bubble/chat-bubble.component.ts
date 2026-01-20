@@ -1,9 +1,15 @@
-import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  input,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import { MarkdownComponent } from '@analogjs/content';
 import { ChatMessage } from '../types/chat-message';
 
 @Component({
   selector: 'lib-chat-bubble',
-  imports: [],
+  imports: [MarkdownComponent],
   template: `
     @if (message().type === 'user') {
       <!-- User message (left side) -->
@@ -17,10 +23,18 @@ import { ChatMessage } from '../types/chat-message';
         </div>
         <div class="chat-header">
           {{ userName() }}
-          <time class="ml-2 text-xs opacity-50">{{ formatTime(message().timestamp) }}</time>
+          <time class="ml-2 text-xs opacity-50">{{
+            formatTime(message().timestamp)
+          }}</time>
         </div>
         <div [class]="bubbleClasses()">
-          {{ message().content }}
+          @if (message().isMarkdown) {
+            <analog-markdown
+              [content]="message().content"
+              class="prose prose-sm max-w-none prose-invert" />
+          } @else {
+            {{ message().content }}
+          }
         </div>
       </div>
     } @else {
@@ -32,20 +46,26 @@ import { ChatMessage } from '../types/chat-message';
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
-              class="h-full w-full p-2 text-accent-content"
-            >
+              class="h-full w-full p-2 text-accent-content">
               <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
-              />
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
             </svg>
           </div>
         </div>
         <div class="chat-header">
           Assistant
-          <time class="ml-2 text-xs opacity-50">{{ formatTime(message().timestamp) }}</time>
+          <time class="ml-2 text-xs opacity-50">{{
+            formatTime(message().timestamp)
+          }}</time>
         </div>
         <div [class]="bubbleClasses()">
-          {{ message().content }}
+          @if (message().isMarkdown) {
+            <analog-markdown
+              [content]="message().content"
+              class="prose prose-sm max-w-none prose-invert" />
+          } @else {
+            {{ message().content }}
+          }
         </div>
       </div>
     }
@@ -53,6 +73,49 @@ import { ChatMessage } from '../types/chat-message';
   styles: `
     :host {
       display: block;
+    }
+
+    /* Markdown styling overrides for chat bubbles */
+    :host ::ng-deep .prose {
+      color: inherit;
+    }
+
+    :host ::ng-deep .prose h1,
+    :host ::ng-deep .prose h2,
+    :host ::ng-deep .prose h3 {
+      color: inherit;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+
+    :host ::ng-deep .prose ul,
+    :host ::ng-deep .prose ol {
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+
+    :host ::ng-deep .prose p {
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+
+    :host ::ng-deep .prose code {
+      background-color: rgba(0, 0, 0, 0.2);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+
+    :host ::ng-deep .prose pre {
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 1em;
+      border-radius: 0.5em;
+      overflow-x: auto;
+    }
+
+    :host ::ng-deep .prose pre code {
+      background-color: transparent;
+      padding: 0;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,8 +132,9 @@ export class ChatBubbleComponent {
   fontSize = input<string>('text-sm');
 
   // Computed class string
-  bubbleClasses = computed(() =>
-    `chat-bubble ${this.bgColor()} ${this.textColor()} ${this.fontSize()}`
+  bubbleClasses = computed(
+    () =>
+      `chat-bubble ${this.bgColor()} ${this.textColor()} ${this.fontSize()}`,
   );
 
   /**

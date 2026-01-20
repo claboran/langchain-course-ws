@@ -23,6 +23,7 @@ export type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  isMarkdown?: boolean; // Optional flag to render content as markdown
 };
 
 /**
@@ -177,7 +178,7 @@ export const ChatStore = signalStore(
     /**
      * Add an assistant message to the conversation
      */
-    addAssistantMessage(content: string) {
+    addAssistantMessage(content: string, isMarkdown = true) {
       patchState(
         store,
         produce((state) => {
@@ -186,6 +187,7 @@ export const ChatStore = signalStore(
             role: 'assistant',
             content,
             timestamp: new Date(),
+            isMarkdown, // Assistant messages are markdown by default
           });
         }),
       );
@@ -265,7 +267,8 @@ export const ChatStore = signalStore(
                       role: 'assistant',
                       content: response.message,
                       timestamp: new Date(),
-                    });
+                      isMarkdown: true, // Assistant messages are markdown by default
+                    } as ChatMessage);
                     state.isSending = false;
                     // Update conversation ID from response (in case it changed)
                     state.conversationId = response.conversationId;
