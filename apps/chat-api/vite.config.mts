@@ -7,7 +7,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   root: import.meta.dirname,
-  cacheDir: '../node_modules/.vite/chat-api',
+  cacheDir: '../../node_modules/.vite/chat-api',
 
   server: {
     port: 3311,
@@ -39,7 +39,7 @@ export default defineConfig({
 
   // Build configuration for Node.js
   build: {
-    outDir: '../dist/chat-api',
+    outDir: '../../dist/chat-api',
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
@@ -70,7 +70,7 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../coverage/chat-api',
+      reportsDirectory: '../../coverage/chat-api',
       provider: 'v8' as const,
     },
   },

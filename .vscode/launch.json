@@ -33,7 +33,7 @@
       "skipFiles": ["<node_internals>/**"],
       "sourceMaps": true,
       "outFiles": [
-        "${workspaceFolder}/chat-api/dist/**/*.(m|c|)js",
+        "${workspaceFolder}/apps/chat-api/dist/**/*.(m|c|)js",
         "!**/node_modules/**"
       ]
     }

@@ -6,7 +6,7 @@
     "hello-agent:dev": "ts-node -P apps/hello-agent/tsconfig.app.json apps/hello-agent/src/main.ts",
     "hello-agent:build": "nx build hello-agent",
     "hello-agent:test": "nx test hello-agent",
-    "chat-u4i:dev": "nx serve chat-ui",
+    "chat-ui:dev": "nx serve chat-ui",
     "chat-ui:build": "nx build chat-ui",
     "chat-ui:test": "nx test chat-ui",
     "chat-api:dev": "npx nx serve chat-api",
