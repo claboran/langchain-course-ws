@@ -49,3 +49,5 @@ vite.config.*.timestamp*
 .angular
 
 vitest.config.*.timestamp*
+
+open-api-generator-cli/*.jar

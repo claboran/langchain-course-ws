@@ -1,0 +1,15 @@
+.openapi-generator-ignore
+apis/ChatApi.ts
+apis/index.ts
+docs/ChatApi.md
+docs/ChatControllerChat400Response.md
+docs/ChatControllerChat500Response.md
+docs/ChatRequestDto.md
+docs/ChatResponseDto.md
+index.ts
+models/ChatControllerChat400Response.ts
+models/ChatControllerChat500Response.ts
+models/ChatRequestDto.ts
+models/ChatResponseDto.ts
+models/index.ts
+runtime.ts

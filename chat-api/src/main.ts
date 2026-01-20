@@ -45,6 +45,9 @@ async function bootstrap() {
     customSiteTitle: 'Chat API Documentation',
     customfavIcon: 'https://nestjs.com/img/logo-small.svg',
     customCss: '.swagger-ui .topbar { display: none }',
+    raw: ['json', 'yaml'],
+    jsonDocumentUrl: '/api-json',
+    yamlDocumentUrl: '/api-yaml',
   });
 
   const port = process.env['PORT'] || 3311;
