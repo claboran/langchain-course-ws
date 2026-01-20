@@ -4,12 +4,12 @@ import {
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { MarkdownComponent } from '@analogjs/content';
+import { MarkdownRendererComponent } from '../markdown-renderer/markdown-renderer.component';
 import { ChatMessage } from '../types/chat-message';
 
 @Component({
   selector: 'lib-chat-bubble',
-  imports: [MarkdownComponent],
+  imports: [MarkdownRendererComponent],
   template: `
     @if (message().type === 'user') {
       <!-- User message (left side) -->
@@ -29,9 +29,10 @@ import { ChatMessage } from '../types/chat-message';
         </div>
         <div [class]="bubbleClasses()">
           @if (message().isMarkdown) {
-            <analog-markdown
+            <lib-markdown-renderer
               [content]="message().content"
-              class="prose prose-sm max-w-none prose-invert" />
+              cssClass="prose prose-sm max-w-none prose-invert"
+            />
           } @else {
             {{ message().content }}
           }
@@ -46,9 +47,11 @@ import { ChatMessage } from '../types/chat-message';
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
-              class="h-full w-full p-2 text-accent-content">
+              class="h-full w-full p-2 text-accent-content"
+            >
               <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
+              />
             </svg>
           </div>
         </div>
@@ -60,9 +63,10 @@ import { ChatMessage } from '../types/chat-message';
         </div>
         <div [class]="bubbleClasses()">
           @if (message().isMarkdown) {
-            <analog-markdown
+            <lib-markdown-renderer
               [content]="message().content"
-              class="prose prose-sm max-w-none prose-invert" />
+              cssClass="prose prose-sm max-w-none prose-invert"
+            />
           } @else {
             {{ message().content }}
           }
@@ -92,6 +96,23 @@ import { ChatMessage } from '../types/chat-message';
     :host ::ng-deep .prose ol {
       margin-top: 0.5em;
       margin-bottom: 0.5em;
+      list-style-position: outside;
+    }
+
+    /* Unordered list bullets (disc | circle | square) */
+    :host ::ng-deep .prose ul {
+      list-style-type: disc;
+    }
+
+    /* Ordered list numbering (decimal | lower-alpha | lower-roman | etc.) */
+    :host ::ng-deep .prose ol {
+      list-style-type: decimal;
+    }
+
+    /* Style markers to inherit color/size from chat bubble */
+    :host ::ng-deep .prose li::marker {
+      color: inherit;
+      font-size: 0.9em;
     }
 
     :host ::ng-deep .prose p {

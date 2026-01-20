@@ -258,6 +258,9 @@ export const ChatStore = signalStore(
           return store.chatApi.sendMessage(request).pipe(
             tapResponse({
               next: (response) => {
+                // Pre-process markdown content to fix line breaks
+                const processedContent = response.message.replace(/\n(?!\n)/g, '\n\n');
+
                 // Add assistant response
                 patchState(
                   store,
@@ -265,7 +268,7 @@ export const ChatStore = signalStore(
                     state.messages.push({
                       id: uuidv4(),
                       role: 'assistant',
-                      content: response.message,
+                      content: processedContent,
                       timestamp: new Date(),
                       isMarkdown: true, // Assistant messages are markdown by default
                     } as ChatMessage);
