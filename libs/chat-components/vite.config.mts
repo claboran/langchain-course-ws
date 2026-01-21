@@ -8,10 +8,6 @@ export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/chat-components',
   plugins: [angular(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //   plugins: () => [ nxViteTsPaths() ],
-  // },
   test: {
     name: 'chat-components',
     watch: false,
@@ -24,5 +20,8 @@ export default defineConfig(() => ({
       reportsDirectory: '../../coverage/libs/chat-components',
       provider: 'v8' as const,
     },
+    pool: 'forks',
+    maxForks: 1,
+    minForks: 1,
   },
 }));

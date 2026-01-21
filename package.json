@@ -12,6 +12,8 @@
     "chat-api:dev": "npx nx serve chat-api",
     "chat-api:build": "nx build chat-api",
     "chat-api:test": "nx test chat-api",
+    "chat-components:test": "nx test chat-components",
+    "chat-components:lint": "nx lint chat-components",
     "dev": "nx run-many -t serve -p chat-ui chat-api",
     "build": "nx run-many -t build -p chat-ui chat-api",
     "chat-ui:generate:client": "java -jar open-api-generator-cli/openapi-generator-cli.jar generate -i apps/chat-ui/src/server/chat-api/chat-api.yaml -g typescript-fetch -o apps/chat-ui/src/server/openapi-client --additional-properties=supportsES6=true,typescriptThreePlus=true,npmVersion=1.0.0,withInterfaces=true"

@@ -5,15 +5,32 @@ import {
   ChangeDetectionStrategy,
   SecurityContext,
   inject,
+  effect,
+  PLATFORM_ID,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
-import { marked } from 'marked';
+import { Marked, Renderer } from 'marked';
+import { markedHighlight } from 'marked-highlight';
+// @ts-expect-error - Prism types may not be available
+import Prism from 'prismjs';
+
+// Import only essential language grammars
+// To add more languages, import them here
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-bash';
 
 /**
  * Custom Markdown Renderer Component
  *
- * Uses marked library with breaks: true to properly handle line breaks.
- * Sanitizes HTML output for security.
+ * Features:
+ * - Uses marked library with GFM support
+ * - Prism.js syntax highlighting for code blocks
+ * - Mermaid diagram support
+ * - Sanitizes HTML output for security
  */
 @Component({
   selector: 'lib-markdown-renderer',
@@ -111,27 +128,154 @@ import { marked } from 'marked';
     :host ::ng-deep a:hover {
       opacity: 1;
     }
+
+    /* Prism syntax highlighting styles */
+    :host ::ng-deep .token.comment,
+    :host ::ng-deep .token.prolog,
+    :host ::ng-deep .token.doctype,
+    :host ::ng-deep .token.cdata {
+      color: #6a9955;
+    }
+
+    :host ::ng-deep .token.punctuation {
+      color: #d4d4d4;
+    }
+
+    :host ::ng-deep .token.property,
+    :host ::ng-deep .token.tag,
+    :host ::ng-deep .token.boolean,
+    :host ::ng-deep .token.number,
+    :host ::ng-deep .token.constant,
+    :host ::ng-deep .token.symbol,
+    :host ::ng-deep .token.deleted {
+      color: #b5cea8;
+    }
+
+    :host ::ng-deep .token.selector,
+    :host ::ng-deep .token.attr-name,
+    :host ::ng-deep .token.string,
+    :host ::ng-deep .token.char,
+    :host ::ng-deep .token.builtin,
+    :host ::ng-deep .token.inserted {
+      color: #ce9178;
+    }
+
+    :host ::ng-deep .token.operator,
+    :host ::ng-deep .token.entity,
+    :host ::ng-deep .token.url,
+    :host ::ng-deep .language-css .token.string,
+    :host ::ng-deep .style .token.string {
+      color: #d4d4d4;
+    }
+
+    :host ::ng-deep .token.atrule,
+    :host ::ng-deep .token.attr-value,
+    :host ::ng-deep .token.keyword {
+      color: #c586c0;
+    }
+
+    :host ::ng-deep .token.function,
+    :host ::ng-deep .token.class-name {
+      color: #dcdcaa;
+    }
+
+    :host ::ng-deep .token.regex,
+    :host ::ng-deep .token.important,
+    :host ::ng-deep .token.variable {
+      color: #d16969;
+    }
+
+    /* Mermaid diagram styling */
+    :host ::ng-deep .mermaid {
+      background-color: transparent;
+      text-align: center;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarkdownRendererComponent {
   private sanitizer = inject(DomSanitizer);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
 
   // Inputs
   content = input.required<string>();
   cssClass = input<string>('');
 
-  // Configure marked with breaks enabled
+  // Create a custom marked instance to avoid global state pollution
+  private markedInstance = new Marked();
+
   constructor() {
-    marked.setOptions({
-      breaks: true, // Convert \n to <br>
-      gfm: true, // GitHub Flavored Markdown
-    });
+    // Configure this instance of marked with syntax highlighting
+    this.markedInstance.use(
+      markedHighlight({
+        highlight: (code, lang) => {
+          // Handle mermaid specially - don't highlight, just return
+          if (lang === 'mermaid') {
+            return code;
+          }
+
+          if (lang && Prism.languages[lang]) {
+            try {
+              return Prism.highlight(code, Prism.languages[lang], lang);
+            } catch (e) {
+              console.error('Prism highlighting error:', e);
+              return code;
+            }
+          }
+          return code;
+        },
+      }),
+      {
+        breaks: true,
+        gfm: true,
+      }
+    );
+
+    // Add custom renderer for mermaid after markedHighlight
+    const renderer = new Renderer();
+    renderer.code = (token) => {
+      const code = token.text;
+      const lang = token.lang || '';
+
+      // Handle mermaid diagrams
+      if (lang === 'mermaid') {
+        return `<pre class="mermaid">${code}</pre>`;
+      }
+
+      // For other code blocks, use the default rendering
+      // (already processed by markedHighlight)
+      const langClass = lang ? ` class="language-${lang}"` : '';
+      return `<pre><code${langClass}>${code}</code></pre>`;
+    };
+
+    this.markedInstance.use({ renderer });
   }
+
+  // Effect to initialize mermaid diagrams after rendering
+  private initMermaidEffect = effect(() => {
+    if (!this.isBrowser) return;
+
+    const content = this.content();
+    if (content.includes('```mermaid')) {
+      // Dynamically import mermaid to avoid SSR issues
+      import('mermaid').then((mermaid) => {
+        mermaid.default.initialize({
+          startOnLoad: true,
+          theme: 'dark',
+          securityLevel: 'loose',
+        });
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          mermaid.default.run();
+        }, 0);
+      });
+    }
+  });
 
   // Computed signal for rendered and sanitized HTML
   sanitizedHtml = computed(() => {
-    const rawHtml = marked.parse(this.content()) as string;
+    const rawHtml = this.markedInstance.parse(this.content()) as string;
     return this.sanitizer.sanitize(SecurityContext.HTML, rawHtml) || '';
   });
 }
