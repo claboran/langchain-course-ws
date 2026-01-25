@@ -1,22 +1,30 @@
-import { ChatRequest, ChatResponse } from '../../shared';
+import { NewChatRequest, ContinueChatRequest, ChatResponse } from '../../shared';
 import {
   ChatApi,
-  ChatRequestDto,
+  NewChatRequestDto,
+  ContinueChatRequestDto,
   ChatResponseDto,
   Configuration,
 } from '../openapi-client';
 import { createError } from 'h3';
 import { z } from 'zod';
+import { ConversationIdSchema } from '../../shared';
 
 const CHAT_API_URL = process.env['CHAT_API_URL'] || 'http://localhost:3311';
 const config = new Configuration({ basePath: CHAT_API_URL });
 export const chatApiClient = new ChatApi(config);
 
 
-export const transformChatRequestToDto = (
-  req: ChatRequest,
-): ChatRequestDto => ({
-  conversationId: req.conversationId,
+export const transformNewChatRequestToDto = (
+  req: NewChatRequest,
+): NewChatRequestDto => ({
+  message: req.message,
+  user: req.user,
+});
+
+export const transformContinueChatRequestToDto = (
+  req: ContinueChatRequest,
+): ContinueChatRequestDto => ({
   message: req.message,
   user: req.user,
 });
@@ -26,6 +34,8 @@ export const transformChatResponseFromDto = (
 ): ChatResponse => ({
   message: dto.message,
   conversationId: dto.conversationId,
+  confidence: dto.confidence,
+  hasMarkdown: dto.hasMarkdown,
 });
 
 export const safeParseOrThrow = <S extends z.ZodTypeAny>(
@@ -48,6 +58,16 @@ export const safeParseOrThrow = <S extends z.ZodTypeAny>(
   return result.data;
 };
 
+export const validateConversationIdOrThrow = (
+  conversationId: unknown,
+  opts?: { paramName?: string },
+): string =>
+  safeParseOrThrow(ConversationIdSchema, conversationId, {
+    statusCode: 400,
+    statusMessage: 'Bad Request',
+    message: `${opts?.paramName ?? 'conversationId'} must be a valid UUID`,
+  });
+
 export const callWithErrorHandling = async <T>(
   fn: () => Promise<T>,
   name?: string,
@@ -64,7 +84,7 @@ export const callWithErrorHandling = async <T>(
           : 500;
       const statusText = e.response.statusText || `${friendly} Error`;
       // attempt to read body text if available
-      let errorText = '';
+      let errorText: string;
       try {
         errorText = e.response.text ? await e.response.text() : String(e);
       } catch (readErr) {

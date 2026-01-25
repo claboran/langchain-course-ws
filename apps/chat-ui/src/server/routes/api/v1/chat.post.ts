@@ -1,8 +1,8 @@
 import { defineEventHandler, readBody, createError } from 'h3';
-import { ChatRequestSchema, ChatResponseSchema } from '../../../../shared';
+import { NewChatRequestSchema, ChatResponseSchema } from '../../../../shared';
 import {
   chatApiClient,
-  transformChatRequestToDto,
+  transformNewChatRequestToDto,
   transformChatResponseFromDto,
   callWithErrorHandling,
   safeParseOrThrow,
@@ -12,21 +12,23 @@ import {
 /**
  * POST /api/v1/chat
  *
- * Proxies chat requests to the chat-api backend.
+ * Start a new conversation with the AI assistant.
  * This acts as a BFF (Backend-for-Frontend) layer that:
  * 1. Validates incoming requests with Zod
  * 2. Forwards to the NestJS chat-api backend using the generated OpenAPI client
  * 3. Validates the response
- * 4. Returns type-safe data to the frontend
+ * 4. Returns type-safe data to the frontend (including the new conversationId)
  */
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event);
-    const validatedRequest = safeParseOrThrow(ChatRequestSchema, body);
+    const validatedRequest = safeParseOrThrow(NewChatRequestSchema, body);
 
     const responseData = await callWithErrorHandling(
       () =>
-        chatApiClient.chatControllerChat({ chatRequestDto: transformChatRequestToDto(validatedRequest) }),
+        chatApiClient.chatControllerCreateConversation({
+          newChatRequestDto: transformNewChatRequestToDto(validatedRequest)
+        }),
       'Chat API',
     );
 

@@ -60,6 +60,11 @@ import { ChatMessage } from '../types/chat-message';
           <time class="ml-2 text-xs opacity-50">{{
             formatTime(message().timestamp)
           }}</time>
+          @if (message().confidence !== undefined) {
+            <span class="ml-2 text-xs opacity-70" [attr.title]="'AI Confidence: ' + formatConfidence(message().confidence!)">
+              {{ formatConfidence(message().confidence!) }}
+            </span>
+          }
         </div>
         <div [class]="bubbleClasses()">
           @if (message().isMarkdown) {
@@ -166,5 +171,13 @@ export class ChatBubbleComponent {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  }
+
+  /**
+   * Format confidence score as percentage
+   * @param confidence - Score between 0 and 1
+   */
+  formatConfidence(confidence: number): string {
+    return `${Math.round(confidence * 100)}%`;
   }
 }

@@ -225,7 +225,8 @@ export class MarkdownRendererComponent {
 
     try {
       // Dynamically import the language component
-      await import(`prismjs/components/prism-${actualLang}`);
+      // @ts-ignore - Vite dynamic import limitation
+      await import(/* @vite-ignore */ `prismjs/components/prism-${actualLang}`);
       this.loadedLanguages.add(lang);
       this.loadedLanguages.add(actualLang);
     } catch (e) {

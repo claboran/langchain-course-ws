@@ -13,17 +13,15 @@ import { pipe, tap, switchMap } from 'rxjs';
 import { produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatApiService } from './chat-api.service';
-import type { ChatRequest } from '../../shared';
+import { ChatMessage as LibraryChatMessage } from '@langchain-course-ws/chat-components';
+import type { NewChatRequest, ContinueChatRequest } from '../../shared';
 
 /**
- * Chat Message Type
+ * Store Chat Message Type
+ * Extends the library's ChatMessage with store-specific tracking field
  */
-export type ChatMessage = {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  isMarkdown?: boolean; // Optional flag to render content as markdown
+export type ChatMessage = LibraryChatMessage & {
+  id: string; // Unique identifier for optimistic update rollback
 };
 
 /**
@@ -31,7 +29,7 @@ export type ChatMessage = {
  */
 export type ChatState = {
   messages: ChatMessage[];
-  conversationId: string | null;
+  conversationId: string | null; // Backend-controlled conversation identifier
   userName: string;
   isSending: boolean;
   error: string | null;
@@ -117,7 +115,7 @@ export const ChatStore = signalStore(
     setUserName(userName: string) {
       patchState(
         store,
-        produce((state) => {
+        produce((state: ChatState) => {
           state.userName = userName;
         }),
       );
@@ -129,7 +127,7 @@ export const ChatStore = signalStore(
     clearError() {
       patchState(
         store,
-        produce((state) => {
+        produce((state: ChatState) => {
           state.error = null;
         }),
       );
@@ -137,13 +135,14 @@ export const ChatStore = signalStore(
 
     /**
      * Start a new conversation
+     * Clears all messages and conversationId (backend will create new one on first message)
      */
     startNewConversation() {
       patchState(
         store,
-        produce((state) => {
+        produce((state: ChatState) => {
           state.messages = [];
-          state.conversationId = uuidv4();
+          state.conversationId = null;
           state.error = null;
         }),
       );
@@ -153,25 +152,23 @@ export const ChatStore = signalStore(
      * Reset the entire chat state
      */
     reset() {
-      patchState(
-        store,
-        produce((state) => {
-          state = initialState;
-        }),
-      );
+      patchState(store, initialState);
     },
 
     /**
      * Add a user message to the conversation (optimistic update)
+     *
+     * @param content - Message content
+     * @returns The generated message ID
      */
     addUserMessage(content: string): string {
       const messageId = uuidv4();
       patchState(
         store,
-        produce((state) => {
+        produce((state: ChatState) => {
           state.messages.push({
             id: messageId,
-            role: 'user',
+            type: 'user',
             content,
             timestamp: new Date(),
           });
@@ -182,17 +179,26 @@ export const ChatStore = signalStore(
 
     /**
      * Add an assistant message to the conversation
+     *
+     * @param content - Message content
+     * @param isMarkdown - Whether the content contains markdown
+     * @param confidence - AI confidence score (0-1)
      */
-    addAssistantMessage(content: string, isMarkdown = true) {
+    addAssistantMessage(
+      content: string,
+      isMarkdown = true,
+      confidence?: number
+    ) {
       patchState(
         store,
-        produce((state) => {
+        produce((state: ChatState) => {
           state.messages.push({
             id: uuidv4(),
-            role: 'assistant',
+            type: 'assistant',
             content,
             timestamp: new Date(),
-            isMarkdown, // Assistant messages are markdown by default
+            isMarkdown,
+            confidence,
           });
         }),
       );
@@ -204,7 +210,7 @@ export const ChatStore = signalStore(
     removeMessage(messageId: string) {
       patchState(
         store,
-        produce((state) => {
+        produce((state: ChatState) => {
           state.messages = state.messages.filter(
             (m: { id: string }) => m.id !== messageId,
           );
@@ -219,48 +225,46 @@ export const ChatStore = signalStore(
      * Send a message to the chat API
      *
      * This method:
-     * 1. Adds user message optimistically
-     * 2. Sends request to API
-     * 3. Adds assistant response on success
-     * 4. Rolls back on error
+     * 1. Determines if this is a new or continuing conversation
+     * 2. Adds user message optimistically
+     * 3. Sends request to appropriate API endpoint
+     * 4. Updates conversationId from backend and adds assistant response
+     * 5. Rolls back on error
      *
      * @param message - The message content to send
      */
     sendMessage: rxMethod<string>(
       pipe(
-        tap((message) => {
-          // Ensure we have a conversation ID
-          if (!store.conversationId()) {
-            patchState(
-              store,
-              produce((state) => {
-                state.conversationId = uuidv4();
-              }),
-            );
-          }
-
-          // Clear any previous errors
+        tap(() => {
+          // Clear any previous errors and set loading state
           patchState(
             store,
-            produce((state) => {
+            produce((state: ChatState) => {
               state.error = null;
               state.isSending = true;
             }),
           );
         }),
         switchMap((message) => {
+          const currentConversationId = store.conversationId();
+          const isNewConversation = !currentConversationId;
+
           // Optimistically add user message
           const userMessageId = store.addUserMessage(message);
 
-          // Prepare request
-          const request: ChatRequest = {
+          // Prepare request (same structure for both endpoints)
+          const request = {
             message,
             user: store.userName(),
-            conversationId: store.conversationId()!,
           };
 
+          // Choose API endpoint based on conversation state
+          const apiCall = isNewConversation
+            ? store.chatApi.startNewConversation(request as NewChatRequest)
+            : store.chatApi.continueConversation(currentConversationId!, request as ContinueChatRequest);
+
           // Send to API
-          return store.chatApi.sendMessage(request).pipe(
+          return apiCall.pipe(
             tapResponse({
               next: (response) => {
                 // Pre-process markdown content to fix line breaks
@@ -269,20 +273,22 @@ export const ChatStore = signalStore(
                   '\n\n',
                 );
 
-                // Add assistant response
                 patchState(
                   store,
-                  produce((state) => {
+                  produce((state: ChatState) => {
+                    // Update conversationId from backend (important for new conversations)
+                    state.conversationId = response.conversationId;
+
+                    // Add assistant response with all metadata
                     state.messages.push({
                       id: uuidv4(),
-                      role: 'assistant',
+                      type: 'assistant',
                       content: processedContent,
                       timestamp: new Date(),
-                      isMarkdown: true, // Assistant messages are markdown by default
+                      isMarkdown: response.hasMarkdown,
+                      confidence: response.confidence,
                     } as ChatMessage);
                     state.isSending = false;
-                    // Update conversation ID from response (in case it changed)
-                    state.conversationId = response.conversationId;
                   }),
                 );
               },
@@ -293,7 +299,7 @@ export const ChatStore = signalStore(
                 // Set error state
                 patchState(
                   store,
-                  produce((state) => {
+                  produce((state: ChatState) => {
                     state.error =
                       error.message ||
                       'Failed to send message. Please try again.';
@@ -326,9 +332,48 @@ export const ChatStore = signalStore(
      */
     retryLastMessage() {
       const lastMessage = store.lastMessage();
-      if (lastMessage && lastMessage.role === 'user') {
+      if (lastMessage && lastMessage.type === 'user') {
         store.sendMessage(lastMessage.content);
       }
     },
+
+    /**
+     * Remove the current conversation from the backend
+     * This will also clear local messages
+     */
+    removeConversation: rxMethod<void>(
+      pipe(
+        switchMap(() => {
+          const conversationId = store.conversationId();
+
+          if (!conversationId) {
+            // No conversation to remove, just clear locally
+            store.startNewConversation();
+            return [];
+          }
+
+          // Call API to remove conversation
+          return store.chatApi.removeConversation(conversationId).pipe(
+            tapResponse({
+              next: () => {
+                // Clear messages on success
+                store.startNewConversation();
+              },
+              error: (error: Error) => {
+                // Set error state
+                patchState(
+                  store,
+                  produce((state: ChatState) => {
+                    state.error =
+                      error.message ||
+                      'Failed to remove conversation. Please try again.';
+                  }),
+                );
+              },
+            }),
+          );
+        }),
+      ),
+    ),
   })),
 );

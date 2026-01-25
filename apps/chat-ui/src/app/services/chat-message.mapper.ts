@@ -6,12 +6,18 @@ import { ChatMessage as LibraryMessage } from '@langchain-course-ws/chat-compone
  *
  * Adapts between the ChatStore message format and the library's ChatComponent message format.
  *
- * Store format includes an `id` field and uses `role`, while the library format
- * uses `type` without an id field.
+ * Store format: LibraryChatMessage & { id: string }
+ * - Extends library format with `id` for optimistic update tracking
+ *
+ * Library format: ChatMessage
+ * - Just the display fields (type, content, timestamp, isMarkdown, confidence)
+ *
+ * The mapping is simple: just omit the `id` field.
  */
 
 /**
  * Convert store messages to library messages
+ * Simply strips the `id` field used for rollback tracking
  *
  * @param storeMessages - Messages from ChatStore
  * @returns Messages in library ChatComponent format
@@ -19,24 +25,15 @@ import { ChatMessage as LibraryMessage } from '@langchain-course-ws/chat-compone
 export const mapStoreMessagesToLibrary = (
   storeMessages: StoreMessage[],
 ): LibraryMessage[] =>
-  storeMessages.map((message) => ({
-    type: message.role, // 'role' in store maps to 'type' in library
-    content: message.content,
-    timestamp: message.timestamp,
-    isMarkdown: message.isMarkdown, // Preserve markdown flag
-  }));
+  storeMessages.map(({ id, ...libraryMessage }) => libraryMessage);
 
 /**
  * Convert a single store message to library message
+ * Simply strips the `id` field used for rollback tracking
  *
  * @param storeMessage - Message from ChatStore
  * @returns Message in library ChatComponent format
  */
 export const mapStoreMessageToLibrary = (
-  storeMessage: StoreMessage,
-): LibraryMessage => ({
-  type: storeMessage.role,
-  content: storeMessage.content,
-  timestamp: storeMessage.timestamp,
-  isMarkdown: storeMessage.isMarkdown, // Preserve markdown flag
-});
+  { id, ...libraryMessage }: StoreMessage,
+): LibraryMessage => libraryMessage;

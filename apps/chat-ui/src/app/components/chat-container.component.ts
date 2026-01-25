@@ -1,5 +1,5 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ChatComponent } from '@langchain-course-ws/chat-components';
 import { ChatStore } from '../services';
 import { ErrorAlertComponent } from './error-alert.component';
@@ -26,7 +26,7 @@ import { mapStoreMessagesToLibrary } from '../services/chat-message.mapper';
 @Component({
   selector: 'app-chat-container',
   standalone: true,
-  imports: [FormsModule, ChatComponent, ErrorAlertComponent],
+  imports: [ReactiveFormsModule, ChatComponent, ErrorAlertComponent],
   template: `
     <div class="flex flex-col h-full max-w-4xl mx-auto">
       <!-- Header with User Name -->
@@ -45,8 +45,7 @@ import { mapStoreMessagesToLibrary } from '../services/chat-message.mapper';
           <div class="join">
             <input
               type="text"
-              [(ngModel)]="userNameInput"
-              name="userName"
+              [formControl]="userNameControl"
               placeholder="Enter your name..."
               class="input input-bordered input-sm join-item flex-1"
               maxlength="100"
@@ -55,7 +54,7 @@ import { mapStoreMessagesToLibrary } from '../services/chat-message.mapper';
               type="button"
               class="btn btn-sm btn-primary join-item"
               (click)="setUserName()"
-              [disabled]="!userNameInput().trim()">
+              [disabled]="userNameControl.invalid || !userNameControl.value?.trim()">
               Set Name
             </button>
           </div>
@@ -137,17 +136,15 @@ import { mapStoreMessagesToLibrary } from '../services/chat-message.mapper';
         <form (submit)="sendMessage($event)" class="flex gap-2">
           <input
             type="text"
-            [(ngModel)]="messageInput"
-            name="message"
+            [formControl]="messageControl"
             placeholder="Type your message..."
             class="input input-bordered flex-1"
-            [disabled]="chatStore.isSending()"
-            maxlength="10000"
+            maxlength="5000"
             autocomplete="off" />
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="!messageInput().trim() || chatStore.isSending()">
+            [disabled]="messageControl.invalid || messageControl.disabled || !messageControl.value?.trim()">
             @if (chatStore.isSending()) {
               <span class="loading loading-spinner loading-sm"></span>
             } @else {
@@ -169,9 +166,9 @@ import { mapStoreMessagesToLibrary } from '../services/chat-message.mapper';
         </form>
 
         <!-- Character count -->
-        @if (messageInput().length > 0) {
+        @if (messageControl.value && messageControl.value.length > 0) {
           <div class="text-xs text-base-content/50 mt-2 text-right">
-            {{ messageInput().length }} / 10000 characters
+            {{ messageControl.value.length }} / 5000 characters
           </div>
         }
 
@@ -231,8 +228,18 @@ import { mapStoreMessagesToLibrary } from '../services/chat-message.mapper';
 })
 export class ChatContainerComponent {
   readonly chatStore = inject(ChatStore);
-  messageInput = signal('');
-  userNameInput = signal('');
+  private readonly formBuilder = inject(FormBuilder);
+
+  // Form controls
+  readonly userNameControl = this.formBuilder.control('User', [
+    Validators.required,
+    Validators.maxLength(100),
+  ]);
+
+  readonly messageControl = this.formBuilder.control('', [
+    Validators.required,
+    Validators.maxLength(5000),
+  ]);
 
   /**
    * Computed signal that maps store messages to library format
@@ -244,7 +251,6 @@ export class ChatContainerComponent {
   constructor() {
     // Initialize chat on component creation
     this.chatStore.setUserName('User');
-    this.userNameInput.set('User'); // Set default in input field
     this.chatStore.startNewConversation();
 
     // Auto-scroll to bottom when new messages arrive
@@ -255,14 +261,23 @@ export class ChatContainerComponent {
         setTimeout(() => this.scrollToBottom(), 0);
       }
     });
+
+    // Manage message control state based on sending status
+    effect(() => {
+      if (this.chatStore.isSending()) {
+        this.messageControl.disable();
+      } else {
+        this.messageControl.enable();
+      }
+    });
   }
 
   /**
    * Set the user name from input field
    */
   setUserName() {
-    const name = this.userNameInput().trim();
-    if (name) {
+    const name = this.userNameControl.value?.trim();
+    if (name && this.userNameControl.valid) {
       this.chatStore.setUserName(name);
     }
   }
@@ -272,11 +287,11 @@ export class ChatContainerComponent {
    */
   sendMessage(event: Event) {
     event.preventDefault();
-    const message = this.messageInput().trim();
+    const message = this.messageControl.value?.trim();
 
-    if (message) {
+    if (message && this.messageControl.valid) {
       this.chatStore.sendMessage(message);
-      this.messageInput.set(''); // Clear input
+      this.messageControl.setValue(''); // Clear input
     }
   }
 
@@ -289,7 +304,7 @@ export class ChatContainerComponent {
       confirm('Are you sure you want to start a new conversation?')
     ) {
       this.chatStore.startNewConversation();
-      this.messageInput.set('');
+      this.messageControl.setValue('');
     } else if (!this.chatStore.hasMessages()) {
       this.chatStore.startNewConversation();
     }
