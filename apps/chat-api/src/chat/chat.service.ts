@@ -43,20 +43,35 @@ export class ChatService {
     user: string,
   ): Promise<ChatResponseDto> {
     try {
+      this.#logger.log(`Processing message for conversation ${conversationId} from user ${user}`);
+
       // Store user context for this conversation
+      // Note: conversationId is used directly as the thread_id for LangChain's MemorySaver
       this.userContextService.setUserContext(conversationId, user);
+      this.#logger.debug(`User context stored: ${user} for conversation ${conversationId}`);
 
       // Configure the thread for this conversation
+      // LangChain will use conversationId as the thread_id to persist state
       const config = { configurable: { thread_id: conversationId } };
 
       // Get the agent from the agent service
       const agent = this.agentService.getAgent();
 
+      // Create system prompt that encourages tool usage
+      const systemPrompt = this.createSystemPrompt();
+      this.#logger.debug('System prompt created with personalized instructions');
+
       // Invoke the agent with system prompt and user's message
+      // The agent will automatically use the get_user_info tool when needed
+      // We pass the conversationId in the system message so the tool can extract it
+      this.#logger.log('Invoking agent - expecting tool usage for personalization');
       const result = await agent.invoke(
         {
           messages: [
-            { role: 'system', content: this.createSystemPrompt() },
+            {
+              role: 'system',
+              content: `${systemPrompt}\n\n[INTERNAL: conversation_id=${conversationId}]`
+            },
             { role: 'user', content: message },
           ],
         },
@@ -66,6 +81,9 @@ export class ChatService {
       // Extract the structured response from the result
       // When using toolStrategy, the structured output is in result.structuredResponse
       const chatResult = result.structuredResponse as ChatResult;
+
+      this.#logger.log(`Agent response generated with confidence: ${chatResult.confidence}`);
+      this.#logger.debug(`Response preview: ${chatResult.response.substring(0, 100)}...`);
 
       return ChatResponseDto.from({
         message: chatResult.response,
@@ -85,18 +103,51 @@ export class ChatService {
     return `You are a helpful assistant that answers questions clearly and concisely.
 Always provide accurate information and indicate your confidence level in your responses.
 
+## CRITICAL INSTRUCTIONS FOR PERSONALIZATION ##
+
+1. **IMMEDIATE TOOL USAGE**: At the very START of EVERY conversation, you MUST use the 'get_user_info' tool.
+   - FIRST: Extract the conversation_id from the system message (look for [INTERNAL: conversation_id=...])
+   - THEN: Call the tool with this conversationId as the parameter
+   - This will retrieve the user's name and other context
+   - Do this BEFORE responding to the user's message
+
+2. **PERSONALIZATION REQUIREMENT**: Once you have the user's name from the tool:
+   - Address the user by name in your response (e.g., "Hello John, here's the information you requested...")
+   - Use their name naturally throughout the conversation
+   - Make references that show you remember who they are
+
+3. **ERROR HANDLING**: If the tool returns an error or no user context:
+   - Politely ask the user for their name
+   - Explain that you want to personalize the conversation
+   - Continue providing helpful information even without their name
+
+## RESPONSE FORMATTING GUIDELINES ##
+
 When responding:
 - Use **markdown formatting** (bold, italic, lists, headings) to structure your answers for better readability
 - Include **code blocks** with appropriate language tags when showing code examples or technical snippets
 - Create **mermaid diagrams** when explaining flows, processes, architectures, or relationships that benefit from visual representation
 - Set hasMarkdown to true when your response contains any markdown formatting, code blocks, or mermaid diagrams
 
-Examples when to use mermaid:
+## MERMAID DIAGRAM EXAMPLES ##
+
+Use mermaid for:
 - Flowcharts for processes or decision trees
 - Sequence diagrams for interactions
 - Class diagrams for object relationships
 - Architecture diagrams for system design
 
-You have access to a 'get_user_info' tool. Use it with the conversationId to retrieve the user's name for personalized greetings and communication.`;
+## EXAMPLE CONVERSATION FLOW ##
+
+System: "[INTERNAL: conversation_id=abc-123-def]"
+User: "What is TypeScript?"
+You: [Extract conversation_id from system message → "abc-123-def"]
+You: [Call get_user_info tool with conversationId="abc-123-def"]
+You: "Hello [User's Name], TypeScript is a typed superset of JavaScript..."
+
+Remember:
+- Personalization is MANDATORY
+- ALWAYS extract the conversation_id from the [INTERNAL: conversation_id=...] marker
+- ALWAYS pass it to the get_user_info tool`;
   }
 }

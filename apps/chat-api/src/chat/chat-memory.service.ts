@@ -13,10 +13,11 @@ export class ChatMemoryService {
     return this.#checkPointer;
   }
 
+
   async deleteConversation(conversationId: string): Promise<void> {
     this.#logger.log(`Deleting conversation ${conversationId}`);
 
-    // Delete the conversation from memory
+    // Delete the conversation from memory using conversationId as thread_id
     await this.#checkPointer.deleteThread(conversationId);
 
     // Also clean up user context

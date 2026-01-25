@@ -20,14 +20,16 @@ export class AgentService {
 
     // Create agent once during service initialization
     // Get the user info tool from the UserContextService (encapsulated)
+    const userInfoTool = this.userContextService.createUserInfoTool();
+    
     this.agent = createAgent({
       model: this.model,
-      tools: [this.userContextService.createUserInfoTool()],
+      tools: [userInfoTool],
       checkpointer: this.chatMemoryService.checkPointer,
       responseFormat: toolStrategy(ChatResultSchema),
     });
 
-    this.#logger.log('LangChain agent initialized successfully');
+    this.#logger.log('LangChain agent initialized successfully with user info tool');
   }
 
   /**
