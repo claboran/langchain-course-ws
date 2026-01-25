@@ -303,10 +303,10 @@ export class ChatContainerComponent {
       this.chatStore.hasMessages() &&
       confirm('Are you sure you want to start a new conversation?')
     ) {
-      this.chatStore.startNewConversation();
+      this.chatStore.removeConversation();
       this.messageControl.setValue('');
     } else if (!this.chatStore.hasMessages()) {
-      this.chatStore.startNewConversation();
+      this.chatStore.removeConversation();
     }
   }
 

@@ -267,12 +267,6 @@ export const ChatStore = signalStore(
           return apiCall.pipe(
             tapResponse({
               next: (response) => {
-                // Pre-process markdown content to fix line breaks
-                const processedContent = response.message.replace(
-                  /\n(?!\n)/g,
-                  '\n\n',
-                );
-
                 patchState(
                   store,
                   produce((state: ChatState) => {
@@ -283,7 +277,7 @@ export const ChatStore = signalStore(
                     state.messages.push({
                       id: uuidv4(),
                       type: 'assistant',
-                      content: processedContent,
+                      content: response.message,
                       timestamp: new Date(),
                       isMarkdown: response.hasMarkdown,
                       confidence: response.confidence,
