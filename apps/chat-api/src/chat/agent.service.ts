@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ChatMistralAI } from '@langchain/mistralai';
 import { CHAT_MISTRAL_AI } from '@langchain-course-ws/model-provider';
-import { createAgent, providerStrategy } from 'langchain';
+import { createAgent, toolStrategy } from 'langchain';
 import { ChatResultSchema } from './chat.model';
 import { ChatMemoryService } from './chat-memory.service';
 import { UserContextService } from './user-context.service';
@@ -24,7 +24,7 @@ export class AgentService {
       model: this.model,
       tools: [this.userContextService.createUserInfoTool()],
       checkpointer: this.chatMemoryService.checkPointer,
-      responseFormat: providerStrategy(ChatResultSchema),
+      responseFormat: toolStrategy(ChatResultSchema),
     });
 
     this.#logger.log('LangChain agent initialized successfully');

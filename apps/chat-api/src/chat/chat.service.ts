@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ChatRequestDto } from './dto/chat-request.dto';
+import { randomUUID } from 'crypto';
+import { NewChatRequestDto } from './dto/new-chat-request.dto';
+import { ContinueChatRequestDto } from './dto/continue-chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
-import { ChatResult, ChatResultSchema } from './chat.model';
+import { ChatResult } from './chat.model';
 import { AgentService } from './agent.service';
 import { UserContextService } from './user-context.service';
+import { ChatMemoryService } from './chat-memory.service';
 
 @Injectable()
 export class ChatService {
@@ -12,12 +15,34 @@ export class ChatService {
   constructor(
     private readonly agentService: AgentService,
     private readonly userContextService: UserContextService,
+    private readonly chatMemoryService: ChatMemoryService,
   ) {}
 
-  async chat(request: ChatRequestDto): Promise<ChatResponseDto> {
-    try {
-      const { message, user, conversationId } = request;
+  async createConversation(request: NewChatRequestDto): Promise<ChatResponseDto> {
+    const conversationId = randomUUID();
+    this.#logger.log(`Creating new conversation with ID: ${conversationId}`);
+    return this.processMessage(conversationId, request.message, request.user);
+  }
 
+  async continueConversation(
+    conversationId: string,
+    request: ContinueChatRequestDto,
+  ): Promise<ChatResponseDto> {
+    this.#logger.log(`Continuing conversation: ${conversationId}`);
+    return this.processMessage(conversationId, request.message, request.user);
+  }
+
+  async removeConversation(conversationId: string): Promise<void> {
+    this.#logger.log(`Removing conversation: ${conversationId}`);
+    await this.chatMemoryService.deleteConversation(conversationId);
+  }
+
+  private async processMessage(
+    conversationId: string,
+    message: string,
+    user: string,
+  ): Promise<ChatResponseDto> {
+    try {
       // Store user context for this conversation
       this.userContextService.setUserContext(conversationId, user);
 
@@ -38,15 +63,11 @@ export class ChatService {
         config,
       );
 
-      // Extract the last message from the agent
-      const lastMessage = result.messages[result.messages.length - 1];
+      // Extract the structured response from the result
+      // When using toolStrategy, the structured output is in result.structuredResponse
+      const chatResult = result.structuredResponse as ChatResult;
 
-      // Parse the structured output from the message content
-      const chatResult = ChatResultSchema.parse(
-        lastMessage.content,
-      ) as ChatResult;
-
-      return ChatResponseDto.from(      {
+      return ChatResponseDto.from({
         message: chatResult.response,
         conversationId,
         confidence: chatResult.confidence,
