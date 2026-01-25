@@ -1,76 +1,81 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ChatMistralAI } from '@langchain/mistralai';
-import { CHAT_MISTRAL_AI } from '@langchain-course-ws/model-provider';
-import { createAgent } from 'langchain';
-import { MemorySaver } from '@langchain/langgraph';
-import { tool } from 'langchain';
-import { z } from 'zod';
+import { Injectable, Logger } from '@nestjs/common';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
+import { ChatResult, ChatResultSchema } from './chat.model';
+import { AgentService } from './agent.service';
+import { UserContextService } from './user-context.service';
 
 @Injectable()
 export class ChatService {
-  private readonly checkpointer = new MemorySaver();
+  readonly #logger = new Logger(ChatService.name);
 
   constructor(
-    @Inject(CHAT_MISTRAL_AI) private readonly model: ChatMistralAI,
+    private readonly agentService: AgentService,
+    private readonly userContextService: UserContextService,
   ) {}
 
   async chat(request: ChatRequestDto): Promise<ChatResponseDto> {
     try {
       const { message, user, conversationId } = request;
 
-      // Create user info tool
-      const userInfoTool = this.createUserInfoTool(user);
-
-      // Create agent with memory and tools
-      const agent = createAgent({
-        model: this.model,
-        tools: [userInfoTool],
-        checkpointer: this.checkpointer,
-      });
+      // Store user context for this conversation
+      this.userContextService.setUserContext(conversationId, user);
 
       // Configure the thread for this conversation
       const config = { configurable: { thread_id: conversationId } };
 
-      // Invoke the agent with the user's message
+      // Get the agent from the agent service
+      const agent = this.agentService.getAgent();
+
+      // Invoke the agent with system prompt and user's message
       const result = await agent.invoke(
-        { messages: [{ role: 'user', content: message }] },
-        config
+        {
+          messages: [
+            { role: 'system', content: this.createSystemPrompt() },
+            { role: 'user', content: message },
+          ],
+        },
+        config,
       );
 
       // Extract the last message from the agent
       const lastMessage = result.messages[result.messages.length - 1];
-      const responseContent = typeof lastMessage.content === 'string'
-        ? lastMessage.content
-        : JSON.stringify(lastMessage.content);
 
-      return {
-        message: responseContent,
+      // Parse the structured output from the message content
+      const chatResult = ChatResultSchema.parse(
+        lastMessage.content,
+      ) as ChatResult;
+
+      return ChatResponseDto.from(      {
+        message: chatResult.response,
         conversationId,
-      };
+        confidence: chatResult.confidence,
+        hasMarkdown: chatResult.hasMarkdown,
+      });
     } catch (error) {
-      console.error('Error in chat service:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.#logger.error('Error in chat service:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to get response from AI: ${errorMessage}`);
     }
   }
 
-  private createUserInfoTool(userName: string) {
-    return tool(
-      async () => {
-        // This tool returns user information that the assistant can use
-        // for personalized communication
-        return JSON.stringify({
-          name: userName,
-          timestamp: new Date().toISOString(),
-        });
-      },
-      {
-        name: 'get_user_info',
-        description: 'Get information about the current user for personalized communication. Use this tool to access the user\'s name and other details.',
-        schema: z.object({}),
-      }
-    );
+  private createSystemPrompt(): string {
+    return `You are a helpful assistant that answers questions clearly and concisely.
+Always provide accurate information and indicate your confidence level in your responses.
+
+When responding:
+- Use **markdown formatting** (bold, italic, lists, headings) to structure your answers for better readability
+- Include **code blocks** with appropriate language tags when showing code examples or technical snippets
+- Create **mermaid diagrams** when explaining flows, processes, architectures, or relationships that benefit from visual representation
+- Set hasMarkdown to true when your response contains any markdown formatting, code blocks, or mermaid diagrams
+
+Examples when to use mermaid:
+- Flowcharts for processes or decision trees
+- Sequence diagrams for interactions
+- Class diagrams for object relationships
+- Architecture diagrams for system design
+
+You have access to a 'get_user_info' tool. Use it with the conversationId to retrieve the user's name for personalized greetings and communication.`;
   }
 }

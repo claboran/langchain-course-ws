@@ -1,11 +1,11 @@
 import { defineEventHandler, readBody, createError } from 'h3';
 import { ChatRequestSchema, ChatResponseSchema } from '../../../../shared';
-import { z } from 'zod';
 import {
   chatApiClient,
   transformChatRequestToDto,
   transformChatResponseFromDto,
   callWithErrorHandling,
+  safeParseOrThrow,
 } from '../../../utils/communication.utils';
 
 
@@ -21,49 +21,21 @@ import {
  */
 export default defineEventHandler(async (event) => {
   try {
-    // 1. Parse request body
     const body = await readBody(event);
-
-    // 2. Validate with Zod schema
-    const validationResult = ChatRequestSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Validation Error',
-        data: {
-          errors: z.treeifyError(validationResult.error),  // validationResult.error.format(),
-        },
-      });
-    }
-
-    const validatedRequest = validationResult.data;
-
-    // 3. Use generated OpenAPI client to forward request
+    const validatedRequest = safeParseOrThrow(ChatRequestSchema, body);
 
     const responseData = await callWithErrorHandling(
-      () => chatApiClient
-        .chatControllerChat({ chatRequestDto: transformChatRequestToDto(validatedRequest) }),
+      () =>
+        chatApiClient.chatControllerChat({ chatRequestDto: transformChatRequestToDto(validatedRequest) }),
       'Chat API',
     );
 
-    // 4. Transform DTO to app shared model and validate response with Zod schema
     const transformedResponse = transformChatResponseFromDto(responseData);
-    const responseValidation = ChatResponseSchema.safeParse(transformedResponse);
-
-    if (!responseValidation.success) {
-      console.error('Invalid response from chat API:', responseValidation.error);
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Invalid Response',
-        data: {
-          message: 'Received invalid response from chat service',
-        },
-      });
-    }
-
-    // 5. Return validated response
-    return responseValidation.data;
+    return safeParseOrThrow(ChatResponseSchema, transformedResponse, {
+      statusCode: 500,
+      statusMessage: 'Invalid Response',
+      message: 'Received invalid response from chat service',
+    });
   } catch (error) {
     // Re-throw h3 errors
     if (error && typeof error === 'object' && 'statusCode' in error) {

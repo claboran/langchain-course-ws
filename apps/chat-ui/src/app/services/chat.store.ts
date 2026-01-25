@@ -153,7 +153,12 @@ export const ChatStore = signalStore(
      * Reset the entire chat state
      */
     reset() {
-      patchState(store, initialState);
+      patchState(
+        store,
+        produce((state) => {
+          state = initialState;
+        }),
+      );
     },
 
     /**
@@ -259,7 +264,10 @@ export const ChatStore = signalStore(
             tapResponse({
               next: (response) => {
                 // Pre-process markdown content to fix line breaks
-                const processedContent = response.message.replace(/\n(?!\n)/g, '\n\n');
+                const processedContent = response.message.replace(
+                  /\n(?!\n)/g,
+                  '\n\n',
+                );
 
                 // Add assistant response
                 patchState(
@@ -287,7 +295,8 @@ export const ChatStore = signalStore(
                   store,
                   produce((state) => {
                     state.error =
-                      error.message || 'Failed to send message. Please try again.';
+                      error.message ||
+                      'Failed to send message. Please try again.';
                     state.isSending = false;
                   }),
                 );

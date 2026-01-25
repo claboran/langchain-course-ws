@@ -6,6 +6,7 @@ import {
   Configuration,
 } from '../openapi-client';
 import { createError } from 'h3';
+import { z } from 'zod';
 
 const CHAT_API_URL = process.env['CHAT_API_URL'] || 'http://localhost:3311';
 const config = new Configuration({ basePath: CHAT_API_URL });
@@ -27,16 +28,26 @@ export const transformChatResponseFromDto = (
   conversationId: dto.conversationId,
 });
 
-/**
- * Generic helper to run an async API call and centralize error handling for
- * generated OpenAPI client ResponseError shapes (errors with a `response` property).
- *
- * Usage:
- *   const result = await doInTryCatch(() => client.someCall(args), 'Chat API');
- *
- * @param fn - The async function that performs the API call
- * @param name - Optional friendly name used for logging and error messages
- */
+export const safeParseOrThrow = <S extends z.ZodTypeAny>(
+  schema: S,
+  data: unknown,
+  opts?: { statusCode?: number; statusMessage?: string; message?: string },
+): z.infer<S> => {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    throw createError({
+      statusCode: opts?.statusCode ?? 400,
+      statusMessage: opts?.statusMessage ?? 'Validation Error',
+      data: {
+        message: opts?.message ?? 'Validation failed',
+        errors: z.treeifyError(result.error),
+      },
+    });
+  }
+
+  return result.data;
+};
+
 export const callWithErrorHandling = async <T>(
   fn: () => Promise<T>,
   name?: string,

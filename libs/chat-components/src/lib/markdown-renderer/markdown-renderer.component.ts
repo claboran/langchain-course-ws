@@ -15,22 +15,18 @@ import { markedHighlight } from 'marked-highlight';
 // @ts-expect-error - Prism types may not be available
 import Prism from 'prismjs';
 
-// Import only essential language grammars
-// To add more languages, import them here
-import 'prismjs/components/prism-typescript';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-json';
-import 'prismjs/components/prism-python';
-import 'prismjs/components/prism-bash';
 
 /**
  * Custom Markdown Renderer Component
  *
  * Features:
  * - Uses marked library with GFM support
- * - Prism.js syntax highlighting for code blocks
+ * - Prism.js syntax highlighting for code blocks (dynamically loaded on demand)
  * - Mermaid diagram support
  * - Sanitizes HTML output for security
+ *
+ * The component automatically detects code block languages in the content and
+ * dynamically loads the required Prism language grammars, reducing initial bundle size.
  */
 @Component({
   selector: 'lib-markdown-renderer',
@@ -205,6 +201,38 @@ export class MarkdownRendererComponent {
   // Create a custom marked instance to avoid global state pollution
   private markedInstance = new Marked();
 
+  // Track loaded Prism languages to avoid reloading
+  private loadedLanguages = new Set<string>();
+
+  /**
+   * Dynamically load a Prism language grammar
+   */
+  private async loadPrismLanguage(lang: string): Promise<void> {
+    if (!this.isBrowser || this.loadedLanguages.has(lang)) {
+      return;
+    }
+
+    // Map of language aliases to their actual component names
+    const languageMap: Record<string, string> = {
+      'js': 'javascript',
+      'ts': 'typescript',
+      'py': 'python',
+      'sh': 'bash',
+      'yml': 'yaml',
+    };
+
+    const actualLang = languageMap[lang] || lang;
+
+    try {
+      // Dynamically import the language component
+      await import(`prismjs/components/prism-${actualLang}`);
+      this.loadedLanguages.add(lang);
+      this.loadedLanguages.add(actualLang);
+    } catch (e) {
+      console.warn(`Failed to load Prism language: ${actualLang}`, e);
+    }
+  }
+
   constructor() {
     // Configure this instance of marked with syntax highlighting
     this.markedInstance.use(
@@ -223,6 +251,9 @@ export class MarkdownRendererComponent {
               return code;
             }
           }
+
+          // If language is not loaded yet, return the code as-is
+          // It will be highlighted on the next render after dynamic load
           return code;
         },
       }),
@@ -251,6 +282,23 @@ export class MarkdownRendererComponent {
 
     this.markedInstance.use({ renderer });
   }
+
+  // Effect to dynamically load required Prism languages based on content
+  private loadLanguagesEffect = effect(() => {
+    if (!this.isBrowser) return;
+
+    const content = this.content();
+    // Match code blocks with language specifications
+    const codeBlockRegex = /```(\w+)/g;
+    const matches = content.matchAll(codeBlockRegex);
+
+    for (const match of matches) {
+      const lang = match[1];
+      if (lang && lang !== 'mermaid') {
+        this.loadPrismLanguage(lang);
+      }
+    }
+  });
 
   // Effect to initialize mermaid diagrams after rendering
   private initMermaidEffect = effect(() => {
