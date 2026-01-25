@@ -3,19 +3,18 @@ paths:
   /api/chat:
     post:
       description: >-
-        Send a message to the AI assistant and receive a response. The
-        conversation is maintained using the conversationId, allowing for
-        multi-turn conversations with context. The assistant has access to user
-        information for personalization.
-      operationId: ChatController_chat
+        Create a new conversation with the AI assistant. The server will
+        generate and return a conversationId that should be used for follow-up
+        messages.
+      operationId: ChatController_createConversation
       parameters: []
       requestBody:
         required: true
-        description: Chat request containing the message, user name, and conversation ID
+        description: New chat request containing the first message and user name
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChatRequestDto'
+              $ref: '#/components/schemas/NewChatRequestDto'
             examples:
               firstMessage:
                 summary: First message in a conversation
@@ -23,28 +22,9 @@ paths:
                 value:
                   message: Hello! What can you help me with?
                   user: John Doe
-                  conversationId: 550e8400-e29b-41d4-a716-446655440000
-              followUp:
-                summary: Follow-up message
-                description: >-
-                  Continuing an existing conversation with the same
-                  conversationId
-                value:
-                  message: Can you tell me more about that?
-                  user: John Doe
-                  conversationId: 550e8400-e29b-41d4-a716-446655440000
-              personalizedQuestion:
-                summary: Question requiring user context
-                description: >-
-                  Asking a question where the assistant can use the user tool
-                  for personalization
-                value:
-                  message: What is my name?
-                  user: Alice Smith
-                  conversationId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
       responses:
-        '200':
-          description: Successfully received a response from the assistant
+        '201':
+          description: Successfully created a new conversation and received a response
           content:
             application/json:
               schema:
@@ -55,6 +35,91 @@ paths:
                   including answering questions, providing information, helping
                   with problem-solving, and having conversations. What would you
                   like assistance with today?
+                conversationId: 550e8400-e29b-41d4-a716-446655440000
+        '400':
+          description: Bad request - invalid input data (e.g., missing required fields)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    example: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - message should not be empty
+                      - user should not be empty
+                  error:
+                    type: string
+                    example: Bad Request
+        '500':
+          description: Internal server error - failed to get response from AI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    example: 500
+                  message:
+                    type: string
+                    example: 'Failed to get response from AI: Connection timeout'
+      summary: Start a new conversation
+      tags:
+        - chat
+  /api/chat/{conversationId}:
+    put:
+      description: >-
+        Send a follow-up message to an existing conversation. Use the
+        conversationId returned from the initial POST request.
+      operationId: ChatController_continueConversation
+      parameters:
+        - name: conversationId
+          required: true
+          in: path
+          description: UUID of the conversation to continue
+          schema:
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+            type: string
+      requestBody:
+        required: true
+        description: Chat request containing the message and user name
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinueChatRequestDto'
+            examples:
+              followUp:
+                summary: Follow-up message
+                description: Continuing an existing conversation
+                value:
+                  message: Can you tell me more about that?
+                  user: John Doe
+              personalizedQuestion:
+                summary: Question requiring user context
+                description: >-
+                  Asking a question where the assistant can use the user tool
+                  for personalization
+                value:
+                  message: What is my name?
+                  user: Alice Smith
+      responses:
+        '200':
+          description: Successfully received a response from the assistant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponseDto'
+              example:
+                message: >-
+                  I'd be happy to tell you more! What specific aspect would you
+                  like me to elaborate on?
                 conversationId: 550e8400-e29b-41d4-a716-446655440000
         '400':
           description: >-
@@ -74,7 +139,6 @@ paths:
                       type: string
                     example:
                       - message should not be empty
-                      - conversationId must be a UUID
                   error:
                     type: string
                     example: Bad Request
@@ -91,7 +155,65 @@ paths:
                   message:
                     type: string
                     example: 'Failed to get response from AI: Connection timeout'
-      summary: Send a message to the chat assistant
+      summary: Continue an existing conversation
+      tags:
+        - chat
+    delete:
+      description: Delete a conversation and its entire message history by conversationId
+      operationId: ChatController_removeConversation
+      parameters:
+        - name: conversationId
+          required: true
+          in: path
+          description: UUID of the conversation to remove
+          schema:
+            format: uuid
+            example: 550e8400-e29b-41d4-a716-446655440000
+            type: string
+      responses:
+        '200':
+          description: Conversation successfully removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Conversation removed successfully
+        '400':
+          description: Bad request - invalid UUID format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    example: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - conversationId must be a UUID
+                  error:
+                    type: string
+                    example: Bad Request
+        '500':
+          description: Internal server error - failed to remove conversation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: number
+                    example: 500
+                  message:
+                    type: string
+                    example: Failed to remove conversation
+      summary: Remove a conversation
       tags:
         - chat
 info:
@@ -111,12 +233,12 @@ servers:
     description: Development server
 components:
   schemas:
-    ChatRequestDto:
+    NewChatRequestDto:
       type: object
       properties:
         message:
           type: string
-          description: The message from the user
+          description: The message from the user to start a new conversation
           example: Hello! Can you help me understand how multi-turn conversations work?
           minLength: 1
           maxLength: 5000
@@ -126,17 +248,9 @@ components:
           example: Alice Johnson
           minLength: 1
           maxLength: 100
-        conversationId:
-          type: string
-          description: >-
-            UUID identifying the conversation thread. Use the same ID for all
-            messages in a conversation to maintain context.
-          example: 550e8400-e29b-41d4-a716-446655440000
-          format: uuid
       required:
         - message
         - user
-        - conversationId
     ChatResponseDto:
       type: object
       properties:
@@ -153,6 +267,40 @@ components:
           description: The conversation ID that was used for this exchange
           example: 550e8400-e29b-41d4-a716-446655440000
           format: uuid
+        confidence:
+          type: number
+          description: >-
+            Confidence score between 0 and 1 indicating how confident the AI is
+            in its answer
+          example: 0.95
+          minimum: 0
+          maximum: 1
+        hasMarkdown:
+          type: boolean
+          description: >-
+            Indicates whether the response contains Markdown formatting, Mermaid
+            diagrams, or code blocks
+          example: false
       required:
         - message
         - conversationId
+        - confidence
+        - hasMarkdown
+    ContinueChatRequestDto:
+      type: object
+      properties:
+        message:
+          type: string
+          description: The message from the user to continue the conversation
+          example: Can you tell me more about that?
+          minLength: 1
+          maxLength: 5000
+        user:
+          type: string
+          description: The name of the user sending the message. Used for personalization.
+          example: Alice Johnson
+          minLength: 1
+          maxLength: 100
+      required:
+        - message
+        - user

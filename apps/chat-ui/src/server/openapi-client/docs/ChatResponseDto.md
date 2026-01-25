@@ -8,6 +8,8 @@ Name | Type
 ------------ | -------------
 `message` | string
 `conversationId` | string
+`confidence` | number
+`hasMarkdown` | boolean
 
 ## Example
 
@@ -18,6 +20,8 @@ import type { ChatResponseDto } from ''
 const example = {
   "message": Hello Alice Johnson! I'd be happy to help you understand multi-turn conversations. They allow us to maintain context across multiple exchanges, so I can remember what we've discussed earlier in our conversation.,
   "conversationId": 550e8400-e29b-41d4-a716-446655440000,
+  "confidence": 0.95,
+  "hasMarkdown": false,
 } satisfies ChatResponseDto
 
 console.log(example)

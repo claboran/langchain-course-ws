@@ -31,6 +31,18 @@ export interface ChatResponseDto {
      * @memberof ChatResponseDto
      */
     conversationId: string;
+    /**
+     * Confidence score between 0 and 1 indicating how confident the AI is in its answer
+     * @type {number}
+     * @memberof ChatResponseDto
+     */
+    confidence: number;
+    /**
+     * Indicates whether the response contains Markdown formatting, Mermaid diagrams, or code blocks
+     * @type {boolean}
+     * @memberof ChatResponseDto
+     */
+    hasMarkdown: boolean;
 }
 
 /**
@@ -39,6 +51,8 @@ export interface ChatResponseDto {
 export function instanceOfChatResponseDto(value: object): value is ChatResponseDto {
     if (!('message' in value) || value['message'] === undefined) return false;
     if (!('conversationId' in value) || value['conversationId'] === undefined) return false;
+    if (!('confidence' in value) || value['confidence'] === undefined) return false;
+    if (!('hasMarkdown' in value) || value['hasMarkdown'] === undefined) return false;
     return true;
 }
 
@@ -54,6 +68,8 @@ export function ChatResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: boo
         
         'message': json['message'],
         'conversationId': json['conversationId'],
+        'confidence': json['confidence'],
+        'hasMarkdown': json['hasMarkdown'],
     };
 }
 
@@ -70,6 +86,8 @@ export function ChatResponseDtoToJSONTyped(value?: ChatResponseDto | null, ignor
         
         'message': value['message'],
         'conversationId': value['conversationId'],
+        'confidence': value['confidence'],
+        'hasMarkdown': value['hasMarkdown'],
     };
 }
 

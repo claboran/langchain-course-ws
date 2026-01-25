@@ -15,24 +15,48 @@
 
 import * as runtime from '../runtime';
 import type {
-  ChatControllerChat400Response,
-  ChatControllerChat500Response,
-  ChatRequestDto,
+  ChatControllerContinueConversation400Response,
+  ChatControllerCreateConversation400Response,
+  ChatControllerCreateConversation500Response,
+  ChatControllerRemoveConversation200Response,
+  ChatControllerRemoveConversation400Response,
+  ChatControllerRemoveConversation500Response,
   ChatResponseDto,
+  ContinueChatRequestDto,
+  NewChatRequestDto,
 } from '../models/index';
 import {
-    ChatControllerChat400ResponseFromJSON,
-    ChatControllerChat400ResponseToJSON,
-    ChatControllerChat500ResponseFromJSON,
-    ChatControllerChat500ResponseToJSON,
-    ChatRequestDtoFromJSON,
-    ChatRequestDtoToJSON,
+    ChatControllerContinueConversation400ResponseFromJSON,
+    ChatControllerContinueConversation400ResponseToJSON,
+    ChatControllerCreateConversation400ResponseFromJSON,
+    ChatControllerCreateConversation400ResponseToJSON,
+    ChatControllerCreateConversation500ResponseFromJSON,
+    ChatControllerCreateConversation500ResponseToJSON,
+    ChatControllerRemoveConversation200ResponseFromJSON,
+    ChatControllerRemoveConversation200ResponseToJSON,
+    ChatControllerRemoveConversation400ResponseFromJSON,
+    ChatControllerRemoveConversation400ResponseToJSON,
+    ChatControllerRemoveConversation500ResponseFromJSON,
+    ChatControllerRemoveConversation500ResponseToJSON,
     ChatResponseDtoFromJSON,
     ChatResponseDtoToJSON,
+    ContinueChatRequestDtoFromJSON,
+    ContinueChatRequestDtoToJSON,
+    NewChatRequestDtoFromJSON,
+    NewChatRequestDtoToJSON,
 } from '../models/index';
 
-export interface ChatControllerChatRequest {
-    chatRequestDto: ChatRequestDto;
+export interface ChatControllerContinueConversationRequest {
+    conversationId: string;
+    continueChatRequestDto: ContinueChatRequestDto;
+}
+
+export interface ChatControllerCreateConversationRequest {
+    newChatRequestDto: NewChatRequestDto;
+}
+
+export interface ChatControllerRemoveConversationRequest {
+    conversationId: string;
 }
 
 /**
@@ -43,20 +67,53 @@ export interface ChatControllerChatRequest {
  */
 export interface ChatApiInterface {
     /**
-     * Send a message to the AI assistant and receive a response. The conversation is maintained using the conversationId, allowing for multi-turn conversations with context. The assistant has access to user information for personalization.
-     * @summary Send a message to the chat assistant
-     * @param {ChatRequestDto} chatRequestDto Chat request containing the message, user name, and conversation ID
+     * Send a follow-up message to an existing conversation. Use the conversationId returned from the initial POST request.
+     * @summary Continue an existing conversation
+     * @param {string} conversationId UUID of the conversation to continue
+     * @param {ContinueChatRequestDto} continueChatRequestDto Chat request containing the message and user name
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ChatApiInterface
      */
-    chatControllerChatRaw(requestParameters: ChatControllerChatRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatResponseDto>>;
+    chatControllerContinueConversationRaw(requestParameters: ChatControllerContinueConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatResponseDto>>;
 
     /**
-     * Send a message to the AI assistant and receive a response. The conversation is maintained using the conversationId, allowing for multi-turn conversations with context. The assistant has access to user information for personalization.
-     * Send a message to the chat assistant
+     * Send a follow-up message to an existing conversation. Use the conversationId returned from the initial POST request.
+     * Continue an existing conversation
      */
-    chatControllerChat(requestParameters: ChatControllerChatRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatResponseDto>;
+    chatControllerContinueConversation(requestParameters: ChatControllerContinueConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatResponseDto>;
+
+    /**
+     * Create a new conversation with the AI assistant. The server will generate and return a conversationId that should be used for follow-up messages.
+     * @summary Start a new conversation
+     * @param {NewChatRequestDto} newChatRequestDto New chat request containing the first message and user name
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ChatApiInterface
+     */
+    chatControllerCreateConversationRaw(requestParameters: ChatControllerCreateConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatResponseDto>>;
+
+    /**
+     * Create a new conversation with the AI assistant. The server will generate and return a conversationId that should be used for follow-up messages.
+     * Start a new conversation
+     */
+    chatControllerCreateConversation(requestParameters: ChatControllerCreateConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatResponseDto>;
+
+    /**
+     * Delete a conversation and its entire message history by conversationId
+     * @summary Remove a conversation
+     * @param {string} conversationId UUID of the conversation to remove
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ChatApiInterface
+     */
+    chatControllerRemoveConversationRaw(requestParameters: ChatControllerRemoveConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatControllerRemoveConversation200Response>>;
+
+    /**
+     * Delete a conversation and its entire message history by conversationId
+     * Remove a conversation
+     */
+    chatControllerRemoveConversation(requestParameters: ChatControllerRemoveConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatControllerRemoveConversation200Response>;
 
 }
 
@@ -66,14 +123,63 @@ export interface ChatApiInterface {
 export class ChatApi extends runtime.BaseAPI implements ChatApiInterface {
 
     /**
-     * Send a message to the AI assistant and receive a response. The conversation is maintained using the conversationId, allowing for multi-turn conversations with context. The assistant has access to user information for personalization.
-     * Send a message to the chat assistant
+     * Send a follow-up message to an existing conversation. Use the conversationId returned from the initial POST request.
+     * Continue an existing conversation
      */
-    async chatControllerChatRaw(requestParameters: ChatControllerChatRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatResponseDto>> {
-        if (requestParameters['chatRequestDto'] == null) {
+    async chatControllerContinueConversationRaw(requestParameters: ChatControllerContinueConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatResponseDto>> {
+        if (requestParameters['conversationId'] == null) {
             throw new runtime.RequiredError(
-                'chatRequestDto',
-                'Required parameter "chatRequestDto" was null or undefined when calling chatControllerChat().'
+                'conversationId',
+                'Required parameter "conversationId" was null or undefined when calling chatControllerContinueConversation().'
+            );
+        }
+
+        if (requestParameters['continueChatRequestDto'] == null) {
+            throw new runtime.RequiredError(
+                'continueChatRequestDto',
+                'Required parameter "continueChatRequestDto" was null or undefined when calling chatControllerContinueConversation().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/chat/{conversationId}`;
+        urlPath = urlPath.replace(`{${"conversationId"}}`, encodeURIComponent(String(requestParameters['conversationId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ContinueChatRequestDtoToJSON(requestParameters['continueChatRequestDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ChatResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Send a follow-up message to an existing conversation. Use the conversationId returned from the initial POST request.
+     * Continue an existing conversation
+     */
+    async chatControllerContinueConversation(requestParameters: ChatControllerContinueConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatResponseDto> {
+        const response = await this.chatControllerContinueConversationRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Create a new conversation with the AI assistant. The server will generate and return a conversationId that should be used for follow-up messages.
+     * Start a new conversation
+     */
+    async chatControllerCreateConversationRaw(requestParameters: ChatControllerCreateConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatResponseDto>> {
+        if (requestParameters['newChatRequestDto'] == null) {
+            throw new runtime.RequiredError(
+                'newChatRequestDto',
+                'Required parameter "newChatRequestDto" was null or undefined when calling chatControllerCreateConversation().'
             );
         }
 
@@ -91,18 +197,57 @@ export class ChatApi extends runtime.BaseAPI implements ChatApiInterface {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: ChatRequestDtoToJSON(requestParameters['chatRequestDto']),
+            body: NewChatRequestDtoToJSON(requestParameters['newChatRequestDto']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ChatResponseDtoFromJSON(jsonValue));
     }
 
     /**
-     * Send a message to the AI assistant and receive a response. The conversation is maintained using the conversationId, allowing for multi-turn conversations with context. The assistant has access to user information for personalization.
-     * Send a message to the chat assistant
+     * Create a new conversation with the AI assistant. The server will generate and return a conversationId that should be used for follow-up messages.
+     * Start a new conversation
      */
-    async chatControllerChat(requestParameters: ChatControllerChatRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatResponseDto> {
-        const response = await this.chatControllerChatRaw(requestParameters, initOverrides);
+    async chatControllerCreateConversation(requestParameters: ChatControllerCreateConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatResponseDto> {
+        const response = await this.chatControllerCreateConversationRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Delete a conversation and its entire message history by conversationId
+     * Remove a conversation
+     */
+    async chatControllerRemoveConversationRaw(requestParameters: ChatControllerRemoveConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ChatControllerRemoveConversation200Response>> {
+        if (requestParameters['conversationId'] == null) {
+            throw new runtime.RequiredError(
+                'conversationId',
+                'Required parameter "conversationId" was null or undefined when calling chatControllerRemoveConversation().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/chat/{conversationId}`;
+        urlPath = urlPath.replace(`{${"conversationId"}}`, encodeURIComponent(String(requestParameters['conversationId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ChatControllerRemoveConversation200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Delete a conversation and its entire message history by conversationId
+     * Remove a conversation
+     */
+    async chatControllerRemoveConversation(requestParameters: ChatControllerRemoveConversationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ChatControllerRemoveConversation200Response> {
+        const response = await this.chatControllerRemoveConversationRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
