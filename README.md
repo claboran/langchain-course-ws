@@ -16,6 +16,9 @@ This repository is built as an [Nx workspace](https://nx.dev) and contains a sui
 - **Reactive Frontend**: A modern UI built with Angular Signals and NgRx Signal Store.
 - **Type-Safe API**: Shared Zod schemas for end-to-end type safety between the UI and API.
 - **MistralAI Integration**: Dedicated model provider library for Mistral AI services.
+- **Rich Content Rendering**: Support for markdown, code syntax highlighting, and Mermaid diagrams.
+
+![Mermaid Diagram Example](doc-images/mermaid-rendering-assistant-message.webp)
 
 ---
 
@@ -28,15 +31,28 @@ The workspace is organized into several applications and libraries:
   - Implements LangGraph `MemorySaver` for conversation threading.
   - Custom LangChain tools for user personalization.
   - Swagger UI for interactive API documentation.
+  - 📖 [Detailed Documentation](apps/chat-api/README.md)
+
 - **`chat-ui` (`apps/chat-ui`)**: An AnalogJS/Angular frontend.
   - Uses NgRx Signal Store for reactive state management.
   - Shared Zod schemas for validation and type safety.
   - Proxy-based integration with the backend.
+  - Includes comprehensive service documentation for the chat store.
+
 - **`hello-agent` (`apps/hello-agent`)**: A CLI tool built with Nest Commander for quick AI interactions.
 
 ### Libraries
 - **`chat-components` (`libs/chat-components`)**: Reusable Angular UI components (message bubbles, markdown rendering).
+  - 📖 [Detailed Documentation](libs/chat-components/README.md)
+  - Features markdown rendering with syntax highlighting.
+  - Supports Mermaid diagram visualization.
+  - Optimized for performance and accessibility.
+
 - **`model-provider` (`libs/model-provider`)**: A shared library for MistralAI configuration and integration.
+  - 📖 [Detailed Documentation](libs/model-provider/README.md)
+  - Provides centralized Mistral AI model management.
+  - Supports both synchronous and asynchronous configuration.
+  - Enables dependency injection across the workspace.
 
 ---
 
@@ -49,6 +65,48 @@ The workspace is organized into several applications and libraries:
 - **Validation**: Zod, class-validator
 - **Database/Memory**: LangGraph Checkpointers (In-memory)
 - **API Documentation**: Swagger/OpenAPI
+
+## 🏛️ Architecture Overview
+
+```mermaid
+graph TD;
+    A[User] --> B[Chat UI];
+    B --> C[Chat API];
+    C --> D[LangChain Agent];
+    D --> E[Mistral AI];
+    D --> F[MemorySaver];
+    E --> G[Response];
+    F --> G;
+    G --> B;
+    
+    subgraph Frontend
+    B[Chat UI] --> H[NgRx Signal Store];
+    B --> I[Chat Components];
+    I --> J[Markdown Renderer];
+    I --> K[Mermaid Support];
+    end
+    
+    subgraph Backend
+    C[Chat API] --> L[Model Provider];
+    C --> M[Custom Tools];
+    C --> N[Swagger Docs];
+    end
+    
+    subgraph Shared
+    O[Zod Schemas] --> B;
+    O --> C;
+    P[Model Provider] --> C;
+    end
+```
+
+### Data Flow
+1. **User Interaction**: User sends a message through the chat interface
+2. **State Management**: NgRx Signal Store manages conversation state
+3. **API Request**: Chat UI sends request to NestJS backend
+4. **AI Processing**: LangChain agent processes request with context from MemorySaver
+5. **Model Integration**: Mistral AI generates response using the configured model
+6. **Response Handling**: Backend returns structured response with conversation context
+7. **Content Rendering**: Chat UI displays response with markdown, code highlighting, and diagrams
 
 ---
 
@@ -129,9 +187,37 @@ npm run chat-components:test
 
 ## 📖 Documentation & Links
 
+### Project Documentation
+- 📖 [Chat API Documentation](apps/chat-api/README.md)
+- 📖 [Chat Components Library](libs/chat-components/README.md)
+- 📖 [Model Provider Library](libs/model-provider/README.md)
+
+### Technology Documentation
 - [Nx Documentation](https://nx.dev)
 - [LangChain JS Docs](https://js.langchain.com/)
 - [LangGraph JS Docs](https://langchain-ai.github.io/langgraphjs/)
 - [AnalogJS Docs](https://analogjs.org/)
+- [NgRx Signal Store](https://ngrx.io/guide/signal-store)
+- [Zod Validation](https://zod.dev/)
+
+### Rich Content Features
+This project supports advanced content rendering including:
+- **Markdown**: Headers, lists, tables, and formatting
+- **Code Syntax Highlighting**: Automatic highlighting for dozens of programming languages
+- **Mermaid Diagrams**: Interactive flowcharts, sequence diagrams, and more
+- **Responsive Design**: Optimized for desktop and mobile devices
+
+### Example Mermaid Diagram
+```mermaid
+graph TD;
+    A[User] --> B[Chat UI];
+    B --> C[Chat API];
+    C --> D[LangChain Agent];
+    D --> E[Mistral AI];
+    D --> F[MemorySaver];
+    E --> G[Response];
+    F --> G;
+    G --> B;
+```
 
 Made with ❤️ as part of the LangChain Course.

@@ -53,3 +53,5 @@ vitest.config.*.timestamp*
 open-api-generator-cli/*.jar
 
 .output.txt
+
+.vibe/config.toml
