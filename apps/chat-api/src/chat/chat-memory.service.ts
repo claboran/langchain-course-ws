@@ -19,10 +19,6 @@ export class ChatMemoryService {
 
     // Delete the conversation from memory using conversationId as thread_id
     await this.#checkPointer.deleteThread(conversationId);
-
-    // Also clean up user context
-    this.userContextService.deleteUserContext(conversationId);
-
     this.#logger.log(`Conversation ${conversationId} and user context deleted`);
   }
 }

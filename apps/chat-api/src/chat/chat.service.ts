@@ -45,14 +45,17 @@ export class ChatService {
     try {
       this.#logger.log(`Processing message for conversation ${conversationId} from user ${user}`);
 
-      // Store user context for this conversation
-      // Note: conversationId is used directly as the thread_id for LangChain's MemorySaver
-      this.userContextService.setUserContext(conversationId, user);
-      this.#logger.debug(`User context stored: ${user} for conversation ${conversationId}`);
-
       // Configure the thread for this conversation
-      // LangChain will use conversationId as the thread_id to persist state
-      const config = { configurable: { thread_id: conversationId } };
+      // LangChain will use conversationId as the thread_id to persist conversation state
+      // We also pass userName through config so the get_user_info tool can access it
+      const config = {
+        configurable: {
+          thread_id: conversationId,
+          userName: user,
+        }
+      };
+
+      this.#logger.debug(`Config prepared with thread_id: ${conversationId}, userName: ${user}`);
 
       // Get the agent from the agent service
       const agent = this.agentService.getAgent();
@@ -63,15 +66,13 @@ export class ChatService {
 
       // Invoke the agent with system prompt and user's message
       // The agent will automatically use the get_user_info tool when needed
-      // We pass the conversationId in the system message so the tool can extract it
+      // User context (conversationId and userName) is passed via config.configurable
+      // The checkpointer will persist conversation history per thread_id
       this.#logger.log('Invoking agent - expecting tool usage for personalization');
       const result = await agent.invoke(
         {
           messages: [
-            {
-              role: 'system',
-              content: `${systemPrompt}\n\n[INTERNAL: conversation_id=${conversationId}]`
-            },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: message },
           ],
         },
@@ -106,8 +107,7 @@ Always provide accurate information and indicate your confidence level in your r
 ## CRITICAL INSTRUCTIONS FOR PERSONALIZATION ##
 
 1. **IMMEDIATE TOOL USAGE**: At the very START of EVERY conversation, you MUST use the 'get_user_info' tool.
-   - FIRST: Extract the conversation_id from the system message (look for [INTERNAL: conversation_id=...])
-   - THEN: Call the tool with this conversationId as the parameter
+   - Call the tool with NO parameters (it automatically accesses the conversation context)
    - This will retrieve the user's name and other context
    - Do this BEFORE responding to the user's message
 
@@ -139,15 +139,13 @@ Use mermaid for:
 
 ## EXAMPLE CONVERSATION FLOW ##
 
-System: "[INTERNAL: conversation_id=abc-123-def]"
 User: "What is TypeScript?"
-You: [Extract conversation_id from system message → "abc-123-def"]
-You: [Call get_user_info tool with conversationId="abc-123-def"]
+You: [Call get_user_info tool with no parameters]
 You: "Hello [User's Name], TypeScript is a typed superset of JavaScript..."
 
 Remember:
 - Personalization is MANDATORY
-- ALWAYS extract the conversation_id from the [INTERNAL: conversation_id=...] marker
-- ALWAYS pass it to the get_user_info tool`;
+- ALWAYS call the get_user_info tool at the start
+- The tool requires NO parameters - it automatically accesses the conversation context`;
   }
 }
