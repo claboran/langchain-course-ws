@@ -55,3 +55,8 @@ open-api-generator-cli/*.jar
 .output.txt
 
 .vibe/config.toml
+
+# Log files
+logs/
+*.log
+!package-lock.json
