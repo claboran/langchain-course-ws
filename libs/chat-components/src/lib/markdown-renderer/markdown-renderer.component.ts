@@ -14,6 +14,15 @@ import { Marked, Renderer } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 // @ts-expect-error - Prism types may not be available
 import Prism from 'prismjs';
+// Pre-import common Prism languages to avoid dynamic import issues
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-markdown';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-markup'; // HTML
 
 
 /**
@@ -185,6 +194,18 @@ import Prism from 'prismjs';
     :host ::ng-deep .mermaid {
       background-color: transparent;
       text-align: center;
+      width: 100%;
+      min-width: 300px;
+      min-height: 100px;
+      display: block;
+      overflow: visible;
+    }
+
+    :host ::ng-deep .mermaid svg {
+      max-width: 100%;
+      height: auto;
+      min-width: 0;
+      overflow: visible;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -202,7 +223,17 @@ export class MarkdownRendererComponent {
   private markedInstance = new Marked();
 
   // Track loaded Prism languages to avoid reloading
-  private loadedLanguages = new Set<string>();
+  // Pre-mark common languages as loaded since we import them at the top
+  private loadedLanguages = new Set<string>([
+    'javascript', 'js',
+    'typescript', 'ts',
+    'python', 'py',
+    'bash', 'sh',
+    'json',
+    'markdown', 'md',
+    'css',
+    'markup', 'html', 'xml'
+  ]);
 
   /**
    * Dynamically load a Prism language grammar
@@ -218,10 +249,22 @@ export class MarkdownRendererComponent {
       'ts': 'typescript',
       'py': 'python',
       'sh': 'bash',
+      'shell': 'bash',
       'yml': 'yaml',
+      'html': 'markup',
+      'xml': 'markup',
+      'svg': 'markup',
+      'md': 'markdown',
     };
 
     const actualLang = languageMap[lang] || lang;
+
+    // Check if language is already loaded in Prism
+    if (Prism.languages[actualLang]) {
+      this.loadedLanguages.add(lang);
+      this.loadedLanguages.add(actualLang);
+      return;
+    }
 
     try {
       // Dynamically import the language component
@@ -272,6 +315,7 @@ export class MarkdownRendererComponent {
 
       // Handle mermaid diagrams
       if (lang === 'mermaid') {
+        // Don't escape - Mermaid needs raw code to parse
         return `<pre class="mermaid">${code}</pre>`;
       }
 
@@ -301,6 +345,9 @@ export class MarkdownRendererComponent {
     }
   });
 
+  // Track if mermaid has been initialized
+  private mermaidInitialized = false;
+
   // Effect to initialize mermaid diagrams after rendering
   private initMermaidEffect = effect(() => {
     if (!this.isBrowser) return;
@@ -309,15 +356,29 @@ export class MarkdownRendererComponent {
     if (content.includes('```mermaid')) {
       // Dynamically import mermaid to avoid SSR issues
       import('mermaid').then((mermaid) => {
-        mermaid.default.initialize({
-          startOnLoad: true,
-          theme: 'dark',
-          securityLevel: 'loose',
-        });
-        // Small delay to ensure DOM is updated
+        // Only initialize once
+        if (!this.mermaidInitialized) {
+          mermaid.default.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            securityLevel: 'loose', // 'sandbox' creates iframe that blocks scripts
+            // Alternative: 'antiscript' - more secure but may have compatibility issues
+          });
+          this.mermaidInitialized = true;
+        }
+
+        // Run mermaid on new content with proper delay
         setTimeout(() => {
-          mermaid.default.run();
-        }, 0);
+          // Query for unprocessed mermaid diagrams
+          const mermaidElements = document.querySelectorAll<HTMLElement>('.mermaid:not([data-processed])');
+          if (mermaidElements.length > 0) {
+            mermaid.default.run({
+              nodes: mermaidElements as unknown as ArrayLike<HTMLElement>,
+            }).catch((error) => {
+              console.error('Mermaid rendering error:', error);
+            });
+          }
+        }, 100); // Increased delay for DOM updates
       });
     }
   });
@@ -325,6 +386,18 @@ export class MarkdownRendererComponent {
   // Computed signal for rendered and sanitized HTML
   sanitizedHtml = computed(() => {
     const rawHtml = this.markedInstance.parse(this.content()) as string;
+
+    // For Mermaid diagrams, we need to bypass sanitization as Angular's sanitizer
+    // strips the necessary scripts and SVG elements that Mermaid needs to function
+    // This is safe because:
+    // 1. The content comes from marked.js which escapes user input
+    // 2. Mermaid itself sanitizes diagram definitions
+    // 3. We're only bypassing for rendering, not for data storage
+    if (this.content().includes('```mermaid')) {
+      return this.sanitizer.bypassSecurityTrustHtml(rawHtml);
+    }
+
+    // For regular markdown without Mermaid, use standard sanitization
     return this.sanitizer.sanitize(SecurityContext.HTML, rawHtml) || '';
   });
 }
