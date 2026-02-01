@@ -6,11 +6,11 @@ import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { IngestDocument } from './ingest.model';
 
 
-interface IngestResult {
+type IngestResult =  {
   totalIngested: number;
   batchesProcessed: number;
   timeElapsed: number;
-}
+};
 
 @Injectable()
 export class IngestService {
