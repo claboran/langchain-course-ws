@@ -1,13 +1,18 @@
 # Product Ingest Pipeline
 
-A NestJS CLI application for ingesting product documents and creating embeddings in pgvector.
+A NestJS CLI application for ingesting product documents and creating vector embeddings in pgvector for semantic search.
+
+## Overview
+
+This pipeline transforms raw product data into searchable vector embeddings, enabling the e-commerce assistant to understand and retrieve products based on natural language queries. It's the foundational step for building semantic product search capabilities.
 
 ## Features
 
-- **Document Loading**: Loads pre-cleaned product data in LangChain format
+- **Document Loading**: Loads pre-cleaned product data in LangChain Document format
 - **Embedding Generation**: Uses Ollama (nomic-embed-text) to create 768-dimensional embeddings
-- **Vector Storage**: Stores embeddings in PostgreSQL with pgvector extension
-- **Batch Processing**: Processes 27,752 products in batches of 100 for efficiency
+- **Vector Storage**: Stores embeddings in PostgreSQL with pgvector extension and HNSW indexing
+- **Batch Processing**: Efficiently processes 27,752 products in batches of 100
+- **Data Source**: Product catalog in `data/prepared-products.json` (pre-cleaned and formatted)
 
 ## Prerequisites
 

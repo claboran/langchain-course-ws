@@ -1,0 +1,15 @@
+.openapi-generator-ignore
+apis/EcommerceAssistantApi.ts
+apis/index.ts
+docs/ContinueConversationRequestDto.md
+docs/ConversationResponseDto.md
+docs/EcommerceAssistantApi.md
+docs/EcommerceAssistantControllerRemoveConversation200Response.md
+docs/NewConversationRequestDto.md
+index.ts
+models/ContinueConversationRequestDto.ts
+models/ConversationResponseDto.ts
+models/EcommerceAssistantControllerRemoveConversation200Response.ts
+models/NewConversationRequestDto.ts
+models/index.ts
+runtime.ts
