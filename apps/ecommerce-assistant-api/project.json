@@ -1,0 +1,72 @@
+{
+  "name": "ecommerce-assistant-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/ecommerce-assistant-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/ecommerce-assistant-api"
+      },
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      }
+    },
+    "prune-lockfile": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "outputs": [
+        "{workspaceRoot}/dist/ecommerce-assistant-api/package.json",
+        "{workspaceRoot}/dist/ecommerce-assistant-api/package-lock.json"
+      ],
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": ["{workspaceRoot}/dist/ecommerce-assistant-api/workspace_modules"],
+      "executor": "@nx/js:copy-workspace-modules",
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx ts-node --project apps/ecommerce-assistant-api/tsconfig.app.json -r tsconfig-paths/register apps/ecommerce-assistant-api/src/main.ts"
+      }
+    },
+    "preview": {
+      "dependsOn": ["build"],
+      "executor": "@nx/vite:preview-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "ecommerce-assistant-api:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "ecommerce-assistant-api:build:development"
+        },
+        "production": {
+          "buildTarget": "ecommerce-assistant-api:build:production"
+        }
+      }
+    }
+  }
+}

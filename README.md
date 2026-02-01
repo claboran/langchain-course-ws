@@ -48,6 +48,14 @@ The workspace is organized into several applications and libraries:
   - Integrates with vector databases for efficient product knowledge retrieval.
   - 📖 [Detailed Documentation](apps/product-ingest/README.md)
 
+- **`ecommerce-assistant-api` (`apps/ecommerce-assistant-api`)**: A conversational e-commerce assistant API.
+  - Semantic product search using pgvector and LangChain.
+  - Multi-turn conversations with memory persistence.
+  - Custom LangChain tools for product search and category browsing.
+  - Structured responses with Markdown support.
+  - Swagger UI for interactive API documentation.
+  - 📖 [Detailed Documentation](apps/ecommerce-assistant-api/README.md)
+
 ### Infrastructure
 - **`iac` (`iac/`)**: Infrastructure as Code for deployment and vector database setup.
   - 📖 [Infrastructure Documentation](iac/README.md)
@@ -123,18 +131,26 @@ graph TD;
 
 ## 🛍️ E-Commerce Agent Initiative
 
-This workspace is evolving to include an intelligent e-commerce assistant that can help users discover and recommend products based on natural language queries.
+This workspace includes an intelligent e-commerce assistant that helps users discover and recommend products based on natural language queries.
 
 ### Current Progress
-✅ **Product Embedding Pipeline**: The first foundational step is complete. The `product-ingest` application processes e-commerce product catalogs and generates vector embeddings, enabling semantic search capabilities. This allows the agent to understand product relationships and user intent beyond simple keyword matching.
+✅ **Product Embedding Pipeline**: The `product-ingest` application processes e-commerce product catalogs and generates vector embeddings, enabling semantic search capabilities.
+
+✅ **E-Commerce Assistant API**: A fully functional conversational API built with NestJS, LangChain, and pgvector:
+  - **Semantic Product Search**: Uses vector similarity to find relevant products from natural language queries
+  - **Multi-turn Conversations**: Maintains context across multiple messages using LangGraph MemorySaver
+  - **LangChain Tools**: Custom tools for product search (with optional category filtering) and category listing
+  - **Structured Responses**: Consistent JSON format with AI-generated summaries and product data
+  - **Markdown Support**: Rich text formatting for better readability
+  - **RESTful API**: Three endpoints (POST, PUT, DELETE) with comprehensive Swagger documentation
 
 ### Roadmap
-- 🔄 Vector database integration for efficient similarity search
-- 🔄 Product recommendation agent with LangChain tools
 - 🔄 Integration with the existing chat interface
-- 🔄 Advanced features: filtering, comparison, and personalized recommendations
+- 🔄 Advanced features: filtering by price/rating, product comparison, and personalized recommendations
+- 🔄 Dynamic category detection from database
+- 🔄 Shopping cart management
 
-See the [Product Ingest Documentation](apps/product-ingest/README.md) and [Infrastructure Documentation](iac/README.md) for more details on the technical implementation.
+See the [E-Commerce Assistant API Documentation](apps/ecommerce-assistant-api/README.md), [Product Ingest Documentation](apps/product-ingest/README.md), and [Infrastructure Documentation](iac/README.md) for more details on the technical implementation.
 
 ---
 
@@ -217,6 +233,7 @@ npm run chat-components:test
 
 ### Project Documentation
 - 📖 [Chat API Documentation](apps/chat-api/README.md)
+- 📖 [E-Commerce Assistant API Documentation](apps/ecommerce-assistant-api/README.md)
 - 📖 [Product Ingest Pipeline](apps/product-ingest/README.md)
 - 📖 [Chat Components Library](libs/chat-components/README.md)
 - 📖 [Model Provider Library](libs/model-provider/README.md)

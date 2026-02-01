@@ -17,6 +17,9 @@
     "product-ingest:dev": "ts-node -r tsconfig-paths/register -P apps/product-ingest/tsconfig.app.json apps/product-ingest/src/main.ts -- ingest",
     "product-ingest:build": "nx build product-ingest",
     "product-ingest:migrate": "ts-node -r tsconfig-paths/register -P apps/product-ingest/tsconfig.app.json apps/product-ingest/scripts/run-migrations.ts",
+    "ecommerce-assistant-api:dev": "npx nx serve ecommerce-assistant-api",
+    "ecommerce-assistant-api:build": "nx build ecommerce-assistant-api",
+    "ecommerce-assistant-api:test": "nx test ecommerce-assistant-api",
     "dev": "nx run-many -t serve -p chat-ui chat-api",
     "build": "nx run-many -t build -p chat-ui chat-api",
     "chat-ui:generate:client": "java -jar open-api-generator-cli/openapi-generator-cli.jar generate -i apps/chat-ui/src/server/chat-api/chat-api.yaml -g typescript-fetch -o apps/chat-ui/src/server/openapi-client --additional-properties=supportsES6=true,typescriptThreePlus=true,npmVersion=1.0.0,withInterfaces=true"
@@ -56,6 +59,7 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "20.19.9",
+    "@types/pg": "^8.16.0",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/utils": "^8.40.0",
     "@vitest/coverage-v8": "^4.0.0",
