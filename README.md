@@ -1,25 +1,70 @@
 # LangChain Course Workspace
 
-Welcome to the **LangChain Course Workspace**, a comprehensive monorepo showcasing a full-stack AI-powered chat application. This project demonstrates the integration of modern web technologies with advanced AI orchestration using LangChain and LangGraph.
-
 <a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+
+**A comprehensive full-stack AI application suite showcasing production-ready LangChain and LangGraph implementations.**
+
+This monorepo demonstrates advanced AI agent patterns, semantic search, multi-turn conversations, and rich UI experiences—all built with modern TypeScript, Angular, and NestJS.
 
 ---
 
-## 🚀 Overview
+## 🎯 What We Built
 
-This repository is built as an [Nx workspace](https://nx.dev) and contains a suite of applications and libraries designed to provide a seamless multi-turn conversation experience. It leverages **NestJS** for the backend, **AnalogJS/Angular** for the frontend, and **LangChain/LangGraph** for AI logic.
+### 1. **Intelligent Shopping Assistant** ✨
 
-### Key Features
-- **Multi-turn Conversations**: Context-aware chat with memory persistence using LangGraph.
-- **AI Orchestration**: Advanced agent logic with LangChain, featuring custom tools for personalization.
-- **E-Commerce Agent** (In Development): Building an intelligent e-commerce assistant with product knowledge powered by vector embeddings.
-- **Reactive Frontend**: A modern UI built with Angular Signals and NgRx Signal Store.
-- **Type-Safe API**: Shared Zod schemas for end-to-end type safety between the UI and API.
-- **MistralAI Integration**: Dedicated model provider library for Mistral AI services.
-- **Rich Content Rendering**: Support for markdown, code syntax highlighting, and Mermaid diagrams.
+![Shopping Assistant UI](doc-images/shopping-assistant-ui.webp)
+
+A complete e-commerce conversational AI that helps users discover products through natural language:
+- **Semantic Product Search**: Vector-powered search with pgvector and embeddings
+- **Multi-turn Context**: Remembers conversation history across interactions
+- **Custom LangChain Tools**: Product search with category filtering + category browsing
+- **Rich UI**: Interactive chat with markdown support and product cards
+- **27,752 Products**: Full product catalog with vector embeddings ready for semantic search
+
+### 2. **General-Purpose Chat Assistant**
 
 ![Mermaid Diagram Example](doc-images/mermaid-rendering-assistant-message.webp)
+
+A versatile conversational AI demonstrating LangChain fundamentals:
+- **Personalization Tools**: Custom LangChain tool for user context
+- **Conversation Threading**: UUID-based conversation management
+- **Rich Content**: Markdown, syntax highlighting, and Mermaid diagrams
+- **Production Patterns**: NgRx Signal Store, immer.js, tapResponse
+
+### 3. **Product Embedding Pipeline**
+
+An ETL pipeline for generating and storing vector embeddings:
+- **Batch Processing**: Efficiently handles 27K+ products
+- **Ollama Integration**: Local embeddings with nomic-embed-text (768 dimensions)
+- **pgvector Storage**: PostgreSQL with HNSW indexing for fast similarity search
+- **Migration Support**: TypeORM migrations for schema management
+
+---
+
+## 🧠 AI & LangChain Concepts Covered
+
+### Core LangChain Patterns
+- ✅ **Agent Creation**: Using `createAgent` with model + tools + memory
+- ✅ **Custom Tools**: Building domain-specific tools with the `tool()` function
+- ✅ **Structured Output**: Using `toolStrategy` with Zod schemas for consistent responses
+- ✅ **Memory Persistence**: LangGraph's `MemorySaver` checkpointer for conversation state
+- ✅ **Conversation Threading**: Managing multiple concurrent conversations with thread IDs
+
+### Vector Search & RAG
+- ✅ **Embeddings**: Generating vector representations with Ollama (nomic-embed-text)
+- ✅ **Vector Stores**: PGVectorStore integration with PostgreSQL
+- ✅ **Semantic Search**: Similarity search with cosine distance
+- ✅ **Retrieval**: Using `.asRetriever()` pattern with filtering
+- ✅ **HNSW Indexing**: Fast approximate nearest neighbor search
+
+### Production Best Practices
+- ✅ **Error Handling**: tapResponse pattern for structured error flows
+- ✅ **Optimistic Updates**: Immediate UI feedback with rollback on failure
+- ✅ **Type Safety**: End-to-end type safety with Zod schemas
+- ✅ **Model Configuration**: Centralized model provider with dependency injection
+- ✅ **API Documentation**: Comprehensive Swagger/OpenAPI specs
+
+---
 
 ---
 
@@ -83,13 +128,31 @@ The workspace is organized into several applications and libraries:
 
 ## 🛠️ Tech Stack
 
-- **Frameworks**: [Nx](https://nx.dev), [NestJS](https://nestjs.com/), [Angular](https://angular.io/) (via [AnalogJS](https://analogjs.org/))
-- **AI Logic**: [LangChain](https://js.langchain.com/), [LangGraph](https://langchain-ai.github.io/langgraphjs/)
-- **State Management**: NgRx Signal Store
-- **Styling**: Tailwind CSS, DaisyUI
-- **Validation**: Zod, class-validator
-- **Database/Memory**: LangGraph Checkpointers (In-memory)
-- **API Documentation**: Swagger/OpenAPI
+### AI & LangChain
+- **LLM**: [Mistral AI](https://docs.mistral.ai/) (`mistral-large-latest`)
+- **Orchestration**: [LangChain JS](https://js.langchain.com/) - Agent framework with custom tools
+- **Memory**: [LangGraph](https://langchain-ai.github.io/langgraphjs/) - MemorySaver checkpointer for conversation state
+- **Embeddings**: [Ollama](https://ollama.ai/) - nomic-embed-text (768 dimensions)
+- **Vector Database**: PostgreSQL + [pgvector](https://github.com/pgvector/pgvector) extension
+
+### Backend
+- **Framework**: [NestJS](https://nestjs.com/) - Enterprise Node.js framework
+- **Build Tool**: [Vite](https://vitejs.dev/) - Fast development and production builds
+- **Validation**: Zod schemas + class-validator
+- **API Docs**: Swagger/OpenAPI with interactive UI
+- **ORM**: TypeORM for database migrations
+
+### Frontend
+- **Framework**: [Angular](https://angular.io/) + [AnalogJS](https://analogjs.org/) - Meta-framework for Angular
+- **State**: [NgRx Signal Store](https://ngrx.io/guide/signal-store) - Reactive state management with signals
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [DaisyUI](https://daisyui.com/)
+- **Content**: Marked.js (markdown), Prism.js (syntax highlighting), Mermaid.js (diagrams)
+
+### Workspace & Tooling
+- **Monorepo**: [Nx](https://nx.dev) - Smart, fast build system
+- **Package Manager**: npm
+- **TypeScript**: Full type safety across the stack
+- **Infrastructure**: Docker Compose for local development
 
 ## 🏛️ Architecture Overview
 
@@ -135,81 +198,124 @@ graph TD;
 
 ---
 
-## 🛍️ E-Commerce Agent Initiative
-
-This workspace includes an intelligent e-commerce assistant that helps users discover and recommend products based on natural language queries.
-
-### Current Progress
-✅ **Product Embedding Pipeline**: The `product-ingest` application processes e-commerce product catalogs and generates vector embeddings, enabling semantic search capabilities.
-
-✅ **Shopping Assistant UI**: A modern web interface (`apps/ecommerce-assistant-ui`) for the e-commerce agent.
-
-✅ **E-Commerce Assistant API**: A fully functional conversational API built with NestJS, LangChain, and pgvector:
-  - **Semantic Product Search**: Uses vector similarity to find relevant products from natural language queries
-  - **Multi-turn Conversations**: Maintains context across multiple messages using LangGraph MemorySaver
-  - **LangChain Tools**: Custom tools for product search (with optional category filtering) and category listing
-  - **Structured Responses**: Consistent JSON format with AI-generated summaries and product data
-  - **Markdown Support**: Rich text formatting for better readability
-  - **RESTful API**: Three endpoints (POST, PUT, DELETE) with comprehensive Swagger documentation
-
-### Roadmap
-- 🔄 Integration with the existing chat interface
-- 🔄 Advanced features: filtering by price/rating, product comparison, and personalized recommendations
-- 🔄 Dynamic category detection from database
-- 🔄 Shopping cart management
-
-See the [E-Commerce Assistant API Documentation](apps/ecommerce-assistant-api/README.md), [Product Ingest Documentation](apps/product-ingest/README.md), and [Infrastructure Documentation](iac/README.md) for more details on the technical implementation.
-
----
-
 ## 🚦 Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- npm or yarn
-- A Mistral AI API Key
 
-### Installation
+**Required:**
+- Node.js v18 or higher
+- npm (comes with Node.js)
+- Mistral AI API Key ([Get one here](https://console.mistral.ai/))
 
-1. Clone the repository:
-   ```sh
+**For E-Commerce Assistant:**
+- Docker (for PostgreSQL + pgvector)
+- Ollama ([Download](https://ollama.ai/)) with `nomic-embed-text` model
+
+### Quick Start (Chat Assistant)
+
+1. **Clone and install dependencies:**
+   ```bash
    git clone <repository-url>
    cd langchain-course-ws
-   ```
-
-2. Install dependencies:
-   ```sh
    npm install
    ```
 
-3. Set up environment variables:
-   Create a `.env` file in the root directory and add your Mistral API key:
-   ```env
-   MISTRAL_API_KEY=your_api_key_here
+2. **Configure environment:**
+   ```bash
+   # Create .env file in the root
+   cat > .env << EOF
+   MISTRAL_API_KEY=your_mistral_api_key_here
+   EOF
    ```
 
-### Running the Application
+3. **Start the applications:**
+   ```bash
+   # Option 1: Run both API and UI together
+   npm run dev
 
-You can run both the frontend and backend simultaneously using Nx:
+   # Option 2: Run individually
+   npm run chat-api:dev      # API on http://localhost:3311
+   npm run chat-ui:dev       # UI on http://localhost:4200
+   ```
 
-```sh
-# Start both chat-api and chat-ui
-npm run dev
+4. **Access the applications:**
+   - **Chat UI**: http://localhost:4200
+   - **Chat API Docs**: http://localhost:3311/api/docs
+
+### Full Setup (E-Commerce Assistant)
+
+<details>
+<summary><strong>Click to expand full setup instructions</strong></summary>
+
+#### 1. Install Ollama and Pull Model
+
+```bash
+# Install Ollama (see https://ollama.ai/)
+# Then pull the embedding model:
+ollama pull nomic-embed-text
 ```
 
-Alternatively, run them individually:
-```sh
-# Start Backend (API)
-npm run chat-api:dev
+#### 2. Start Infrastructure
 
-# Start Frontend (UI)
-npm run chat-ui:dev
+```bash
+# Start PostgreSQL with pgvector
+docker-compose -f iac/docker-compose.postgres.yml up -d
+
+# WSL2 only: Start Ollama proxy
+docker-compose -f iac/docker-compose.nginx.yml up -d
 ```
 
-### Using the CLI Agent
-```sh
-npm run hello-agent:dev -- chat "Hello, how are you?"
+#### 3. Configure Environment
+
+```bash
+# Update .env with additional settings
+cat >> .env << EOF
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/langchain
+OLLAMA_BASE_URL=http://localhost:11435
+PORT=3312
+EOF
 ```
+
+#### 4. Run Database Migration
+
+```bash
+npm run product-ingest:migrate
+```
+
+#### 5. Ingest Product Data
+
+```bash
+# Build and run the ingestion pipeline
+npm run product-ingest:build
+node dist/apps/product-ingest/main.js ingest
+```
+
+This will process 27,752 products and generate embeddings. Time varies based on your hardware (5-30+ minutes depending on CPU/GPU).
+
+#### 6. Start E-Commerce Assistant
+
+```bash
+# Terminal 1: Start API
+npm run ecommerce-assistant-api:dev
+
+# Terminal 2: Start UI
+npm run ecommerce-assistant-ui:dev
+```
+
+#### 7. Access E-Commerce Assistant
+
+- **Shopping UI**: http://localhost:4200 (AnalogJS dev server)
+- **API Documentation**: http://localhost:3312/api/docs
+- **Database**: `psql postgresql://postgres:postgres@localhost:5432/langchain`
+
+**See detailed documentation:**
+- [E-Commerce API Setup](apps/ecommerce-assistant-api/README.md)
+- [Product Ingestion](apps/product-ingest/README.md)
+- [Infrastructure](iac/README.md)
+
+</details>
+
+---
 
 ---
 
@@ -237,43 +343,107 @@ npm run chat-components:test
 
 ---
 
-## 📖 Documentation & Links
+## 📖 Documentation
 
-### Project Documentation
-- 📖 [Chat API Documentation](apps/chat-api/README.md)
-- 📖 [E-Commerce Assistant API Documentation](apps/ecommerce-assistant-api/README.md)
-- 📖 [Shopping Assistant UI Documentation](apps/ecommerce-assistant-ui/README.md)
-- 📖 [Product Ingest Pipeline](apps/product-ingest/README.md)
-- 📖 [Chat Components Library](libs/chat-components/README.md)
-- 📖 [Model Provider Library](libs/model-provider/README.md)
-- 📖 [Infrastructure Documentation](iac/README.md)
+### 📂 Internal Documentation (This Repository)
 
-### Technology Documentation
-- [Nx Documentation](https://nx.dev)
-- [LangChain JS Docs](https://js.langchain.com/)
-- [LangGraph JS Docs](https://langchain-ai.github.io/langgraphjs/)
-- [AnalogJS Docs](https://analogjs.org/)
-- [NgRx Signal Store](https://ngrx.io/guide/signal-store)
-- [Zod Validation](https://zod.dev/)
+**Applications:**
+- [Chat API](apps/chat-api/README.md) - Multi-turn conversation API with LangChain agent
+- [Chat UI Components](apps/chat-ui/src/app/components/README.md) - Angular components architecture
+- [E-Commerce Assistant API](apps/ecommerce-assistant-api/README.md) - Semantic product search API
+- [E-Commerce Assistant UI](apps/ecommerce-assistant-ui/README.md) - Shopping assistant interface
+- [Product Ingest Pipeline](apps/product-ingest/README.md) - Vector embedding generation
 
-### Rich Content Features
-This project supports advanced content rendering including:
-- **Markdown**: Headers, lists, tables, and formatting
-- **Code Syntax Highlighting**: Automatic highlighting for dozens of programming languages
-- **Mermaid Diagrams**: Interactive flowcharts, sequence diagrams, and more
-- **Responsive Design**: Optimized for desktop and mobile devices
+**Libraries:**
+- [Chat Components](libs/chat-components/README.md) - Reusable Angular chat UI components
+- [Model Provider](libs/model-provider/README.md) - Centralized Mistral AI configuration
 
-### Example Mermaid Diagram
-```mermaid
-graph TD;
-    A[User] --> B[Chat UI];
-    B --> C[Chat API];
-    C --> D[LangChain Agent];
-    D --> E[Mistral AI];
-    D --> F[MemorySaver];
-    E --> G[Response];
-    F --> G;
-    G --> B;
+**Infrastructure & Services:**
+- [Infrastructure Setup](iac/README.md) - Docker configurations for PostgreSQL and Ollama
+- [Chat Store](apps/chat-ui/src/app/services/README.md) - NgRx Signal Store patterns
+- [Shared Schemas](apps/chat-ui/src/shared/README.md) - Zod validation schemas
+
+### 🌐 External Resources
+
+**LangChain & AI:**
+- [LangChain JS Documentation](https://js.langchain.com/) - JavaScript/TypeScript library docs
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraphjs/) - State management for agents
+- [Mistral AI API](https://docs.mistral.ai/) - LLM provider documentation
+- [Ollama Documentation](https://ollama.ai/) - Local model hosting
+- [pgvector GitHub](https://github.com/pgvector/pgvector) - Vector similarity search
+
+**Frontend Technologies:**
+- [Angular](https://angular.io/) - Modern web framework
+- [AnalogJS](https://analogjs.org/) - Meta-framework for Angular with SSR
+- [NgRx Signal Store](https://ngrx.io/guide/signal-store) - Reactive state management
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
+- [DaisyUI](https://daisyui.com/) - Tailwind component library
+
+**Backend & Tooling:**
+- [NestJS](https://docs.nestjs.com/) - Enterprise Node.js framework
+- [Nx](https://nx.dev) - Smart monorepo tools
+- [Zod](https://zod.dev/) - TypeScript-first schema validation
+
+---
+
+## 🔮 Future Improvements
+
+### Short-term Enhancements
+- [ ] **Streaming Responses**: Implement Server-Sent Events (SSE) for real-time message streaming
+- [ ] **Persistent Memory**: Replace in-memory checkpointer with PostgreSQL/Redis storage
+- [ ] **Dynamic Categories**: Auto-detect product categories from database instead of hardcoding
+- [ ] **User Authentication**: Add login/signup with session management
+- [ ] **Conversation Management**: Add UI for viewing, searching, and deleting past conversations
+
+### Advanced Features
+- [ ] **Hybrid Search**: Combine semantic search with keyword search and filters (price, rating)
+- [ ] **Product Comparison**: Tool for side-by-side product comparison
+- [ ] **Shopping Cart**: Full cart management with checkout flow
+- [ ] **Personalized Recommendations**: User preference learning and recommendation engine
+- [ ] **Multi-modal Support**: Image understanding for product visuals
+- [ ] **Voice Interface**: Speech-to-text and text-to-speech integration
+
+### Technical Improvements
+- [ ] **Rate Limiting**: Implement API rate limiting per user/session
+- [ ] **Conversation Summarization**: Automatic summarization for long conversations
+- [ ] **Observability**: Add logging, metrics, and tracing (OpenTelemetry)
+- [ ] **Increased Test Coverage**: More comprehensive unit and integration tests
+- [ ] **CI/CD**: Automated deployment pipeline
+- [ ] **Production Deployment**: Containerization and cloud deployment (AWS/Azure/GCP)
+
+---
+
+## 📊 Project Structure
+
+```
+langchain-course-ws/
+├── apps/
+│   ├── chat-api/                    # NestJS API with LangChain agent
+│   ├── chat-ui/                     # AnalogJS/Angular frontend
+│   ├── ecommerce-assistant-api/     # E-commerce semantic search API
+│   ├── ecommerce-assistant-ui/      # Shopping assistant UI
+│   ├── product-ingest/              # Vector embedding pipeline
+│   └── hello-agent/                 # CLI demo tool
+├── libs/
+│   ├── chat-components/             # Reusable Angular UI components
+│   └── model-provider/              # Mistral AI configuration library
+├── iac/
+│   ├── docker-compose.postgres.yml  # PostgreSQL + pgvector
+│   └── docker-compose.nginx.yml     # Ollama proxy (WSL2)
+├── data/                            # Product datasets
+└── doc-images/                      # Documentation images
 ```
 
-Made with ❤️ as part of the LangChain Course.
+---
+
+## 🙏 Acknowledgments
+
+Built as part of the LangChain learning journey. Special thanks to the open-source communities behind:
+- LangChain & LangGraph
+- Angular & AnalogJS
+- Nx & NestJS
+- Mistral AI & Ollama
+
+---
+
+Made with ❤️ and AI
