@@ -13,6 +13,7 @@ This repository is built as an [Nx workspace](https://nx.dev) and contains a sui
 ### Key Features
 - **Multi-turn Conversations**: Context-aware chat with memory persistence using LangGraph.
 - **AI Orchestration**: Advanced agent logic with LangChain, featuring custom tools for personalization.
+- **E-Commerce Agent** (In Development): Building an intelligent e-commerce assistant with product knowledge powered by vector embeddings.
 - **Reactive Frontend**: A modern UI built with Angular Signals and NgRx Signal Store.
 - **Type-Safe API**: Shared Zod schemas for end-to-end type safety between the UI and API.
 - **MistralAI Integration**: Dedicated model provider library for Mistral AI services.
@@ -40,6 +41,16 @@ The workspace is organized into several applications and libraries:
   - Includes comprehensive service documentation for the chat store.
 
 - **`hello-agent` (`apps/hello-agent`)**: A CLI tool built with Nest Commander for quick AI interactions.
+
+- **`product-ingest` (`apps/product-ingest`)**: An embedding pipeline for e-commerce product data.
+  - Processes product catalogs and generates vector embeddings for semantic search.
+  - First step in building an intelligent e-commerce agent.
+  - Integrates with vector databases for efficient product knowledge retrieval.
+  - 📖 [Detailed Documentation](apps/product-ingest/README.md)
+
+### Infrastructure
+- **`iac` (`iac/`)**: Infrastructure as Code for deployment and vector database setup.
+  - 📖 [Infrastructure Documentation](iac/README.md)
 
 ### Libraries
 - **`chat-components` (`libs/chat-components`)**: Reusable Angular UI components (message bubbles, markdown rendering).
@@ -107,6 +118,23 @@ graph TD;
 5. **Model Integration**: Mistral AI generates response using the configured model
 6. **Response Handling**: Backend returns structured response with conversation context
 7. **Content Rendering**: Chat UI displays response with markdown, code highlighting, and diagrams
+
+---
+
+## 🛍️ E-Commerce Agent Initiative
+
+This workspace is evolving to include an intelligent e-commerce assistant that can help users discover and recommend products based on natural language queries.
+
+### Current Progress
+✅ **Product Embedding Pipeline**: The first foundational step is complete. The `product-ingest` application processes e-commerce product catalogs and generates vector embeddings, enabling semantic search capabilities. This allows the agent to understand product relationships and user intent beyond simple keyword matching.
+
+### Roadmap
+- 🔄 Vector database integration for efficient similarity search
+- 🔄 Product recommendation agent with LangChain tools
+- 🔄 Integration with the existing chat interface
+- 🔄 Advanced features: filtering, comparison, and personalized recommendations
+
+See the [Product Ingest Documentation](apps/product-ingest/README.md) and [Infrastructure Documentation](iac/README.md) for more details on the technical implementation.
 
 ---
 
@@ -189,8 +217,10 @@ npm run chat-components:test
 
 ### Project Documentation
 - 📖 [Chat API Documentation](apps/chat-api/README.md)
+- 📖 [Product Ingest Pipeline](apps/product-ingest/README.md)
 - 📖 [Chat Components Library](libs/chat-components/README.md)
 - 📖 [Model Provider Library](libs/model-provider/README.md)
+- 📖 [Infrastructure Documentation](iac/README.md)
 
 ### Technology Documentation
 - [Nx Documentation](https://nx.dev)
