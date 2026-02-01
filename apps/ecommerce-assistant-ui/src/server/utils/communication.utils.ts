@@ -7,6 +7,7 @@ import {
 } from '../openapi-client';
 import { createError } from 'h3';
 import { z } from 'zod';
+import { ConversationIdSchema } from '../../shared/ecommerce.schema';
 
 const ECOMMERCE_API_URL =
   process.env['ECOMMERCE_API_URL'] || 'http://localhost:3312';
@@ -39,8 +40,6 @@ export const safeParseOrThrow = <S extends z.ZodTypeAny>(
 /**
  * Validate conversation ID as UUID
  */
-export const ConversationIdSchema = z.string().uuid();
-
 export const validateConversationIdOrThrow = (
   conversationId: unknown,
   opts?: { paramName?: string },

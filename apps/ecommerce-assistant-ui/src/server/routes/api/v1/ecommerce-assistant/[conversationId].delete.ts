@@ -1,4 +1,4 @@
-import { defineEventHandler, createError } from 'h3';
+import { defineEventHandler, createError, getRouterParam } from 'h3';
 import {
   ecommerceApiClient,
   callWithErrorHandling,
@@ -17,18 +17,16 @@ import {
 export default defineEventHandler(async (event) => {
   try {
     const conversationId = validateConversationIdOrThrow(
-      event.context.params?.conversationId,
+      getRouterParam(event, 'conversationId'),
     );
 
-    const responseData = await callWithErrorHandling(
+    return await callWithErrorHandling(
       () =>
-        ecommerceApiClient.ecommerceAssistantControllerRemoveConversation(
+        ecommerceApiClient.ecommerceAssistantControllerRemoveConversation({
           conversationId,
-        ),
+        }),
       'E-commerce Assistant API',
     );
-
-    return responseData;
   } catch (error) {
     // Re-throw h3 errors
     if (error && typeof error === 'object' && 'statusCode' in error) {

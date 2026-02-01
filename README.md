@@ -40,14 +40,6 @@ The workspace is organized into several applications and libraries:
   - Proxy-based integration with the backend.
   - Includes comprehensive service documentation for the chat store.
 
-- **`hello-agent` (`apps/hello-agent`)**: A CLI tool built with Nest Commander for quick AI interactions.
-
-- **`product-ingest` (`apps/product-ingest`)**: An embedding pipeline for e-commerce product data.
-  - Processes product catalogs and generates vector embeddings for semantic search.
-  - First step in building an intelligent e-commerce agent.
-  - Integrates with vector databases for efficient product knowledge retrieval.
-  - 📖 [Detailed Documentation](apps/product-ingest/README.md)
-
 - **`ecommerce-assistant-api` (`apps/ecommerce-assistant-api`)**: A conversational e-commerce assistant API.
   - Semantic product search using pgvector and LangChain.
   - Multi-turn conversations with memory persistence.
@@ -55,6 +47,20 @@ The workspace is organized into several applications and libraries:
   - Structured responses with Markdown support.
   - Swagger UI for interactive API documentation.
   - 📖 [Detailed Documentation](apps/ecommerce-assistant-api/README.md)
+
+- **`ecommerce-assistant-ui` (`apps/ecommerce-assistant-ui`)**: An AnalogJS/Angular frontend for the shopping assistant.
+  - Interactive chat interface with product recommendations.
+  - Rendered with Markdown and custom product cards.
+  - Built with NgRx Signal Store.
+  - 📖 [Detailed Documentation](apps/ecommerce-assistant-ui/README.md)
+
+- **`product-ingest` (`apps/product-ingest`)**: An embedding pipeline for e-commerce product data.
+  - Processes product catalogs and generates vector embeddings for semantic search.
+  - First step in building an intelligent e-commerce agent.
+  - Integrates with vector databases for efficient product knowledge retrieval.
+  - 📖 [Detailed Documentation](apps/product-ingest/README.md)
+
+- **`hello-agent` (`apps/hello-agent`)**: A CLI tool built with Nest Commander for quick AI interactions.
 
 ### Infrastructure
 - **`iac` (`iac/`)**: Infrastructure as Code for deployment and vector database setup.
@@ -135,6 +141,8 @@ This workspace includes an intelligent e-commerce assistant that helps users dis
 
 ### Current Progress
 ✅ **Product Embedding Pipeline**: The `product-ingest` application processes e-commerce product catalogs and generates vector embeddings, enabling semantic search capabilities.
+
+✅ **Shopping Assistant UI**: A modern web interface (`apps/ecommerce-assistant-ui`) for the e-commerce agent.
 
 ✅ **E-Commerce Assistant API**: A fully functional conversational API built with NestJS, LangChain, and pgvector:
   - **Semantic Product Search**: Uses vector similarity to find relevant products from natural language queries
@@ -234,6 +242,7 @@ npm run chat-components:test
 ### Project Documentation
 - 📖 [Chat API Documentation](apps/chat-api/README.md)
 - 📖 [E-Commerce Assistant API Documentation](apps/ecommerce-assistant-api/README.md)
+- 📖 [Shopping Assistant UI Documentation](apps/ecommerce-assistant-ui/README.md)
 - 📖 [Product Ingest Pipeline](apps/product-ingest/README.md)
 - 📖 [Chat Components Library](libs/chat-components/README.md)
 - 📖 [Model Provider Library](libs/model-provider/README.md)

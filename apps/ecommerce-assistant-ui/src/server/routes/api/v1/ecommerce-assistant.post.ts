@@ -4,14 +4,7 @@ import {
   callWithErrorHandling,
   safeParseOrThrow,
 } from '../../../utils/communication.utils';
-import { z } from 'zod';
-
-/**
- * Request schema
- */
-const NewConversationRequestSchema = z.object({
-  message: z.string().min(1).max(5000),
-});
+import { NewConversationRequestSchema } from '../../../../shared/ecommerce.schema';
 
 /**
  * POST /api/v1/ecommerce-assistant

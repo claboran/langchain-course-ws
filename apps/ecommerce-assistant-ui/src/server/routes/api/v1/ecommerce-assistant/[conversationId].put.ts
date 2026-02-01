@@ -1,18 +1,11 @@
-import { defineEventHandler, readBody, createError } from 'h3';
+import { defineEventHandler, readBody, createError, getRouterParam } from 'h3';
 import {
   ecommerceApiClient,
   callWithErrorHandling,
   safeParseOrThrow,
   validateConversationIdOrThrow,
 } from '../../../../utils/communication.utils';
-import { z } from 'zod';
-
-/**
- * Request schema
- */
-const ContinueConversationRequestSchema = z.object({
-  message: z.string().min(1).max(5000),
-});
+import { ContinueConversationRequestSchema } from '../../../../../shared/ecommerce.schema';
 
 /**
  * PUT /api/v1/ecommerce-assistant/:conversationId
@@ -27,7 +20,7 @@ const ContinueConversationRequestSchema = z.object({
 export default defineEventHandler(async (event) => {
   try {
     const conversationId = validateConversationIdOrThrow(
-      event.context.params?.conversationId,
+      getRouterParam(event, 'conversationId'),
     );
 
     const body = await readBody(event);
@@ -36,18 +29,14 @@ export default defineEventHandler(async (event) => {
       body,
     );
 
-    const responseData = await callWithErrorHandling(
+    return await callWithErrorHandling(
       () =>
-        ecommerceApiClient.ecommerceAssistantControllerContinueConversation(
+        ecommerceApiClient.ecommerceAssistantControllerContinueConversation({
           conversationId,
-          {
-            continueConversationRequestDto: validatedRequest,
-          },
-        ),
+          continueConversationRequestDto: validatedRequest,
+        }),
       'E-commerce Assistant API',
     );
-
-    return responseData;
   } catch (error) {
     // Re-throw h3 errors
     if (error && typeof error === 'object' && 'statusCode' in error) {
@@ -55,10 +44,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Handle unexpected errors
-    console.error(
-      'Unexpected error in continue conversation endpoint:',
-      error,
-    );
+    console.error('Unexpected error in continue conversation endpoint:', error);
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error',

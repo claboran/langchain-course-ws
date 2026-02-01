@@ -18,26 +18,26 @@ import type { ConversationResponseDto } from '../../server/openapi-client';
 /**
  * Product document structure from the API
  */
-export interface ProductDocument {
+export type ProductDocument = {
   content: string;
   metadata: {
     id: string;
     category: string;
     [key: string]: unknown;
   };
-}
+};
 
 /**
  * Message in the conversation
  */
-export interface Message {
+export type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   hasMarkdown: boolean;
   products?: ProductDocument[];
   timestamp: Date;
-}
+};
 
 /**
  * Store state for e-commerce assistant
@@ -105,7 +105,7 @@ export const EcommerceAssistantStore = signalStore(
      * Reset the entire conversation
      */
     reset() {
-      patchState(store, initialState);
+      patchState(store, produce((state) => { state = initialState; }));
     },
 
     /**
