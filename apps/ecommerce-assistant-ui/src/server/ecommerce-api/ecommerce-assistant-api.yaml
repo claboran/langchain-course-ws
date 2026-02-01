@@ -1,0 +1,178 @@
+openapi: 3.0.0
+paths:
+  /api/ecommerce-assistant:
+    post:
+      description: >-
+        Create a new conversation with the e-commerce assistant. Ask about
+        products or shop categories.
+      operationId: EcommerceAssistantController_createConversation
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewConversationRequestDto'
+            examples:
+              Product Search:
+                value:
+                  message: I need a good mystery book
+              Category Query:
+                value:
+                  message: What does your shop sell?
+              Specific Search:
+                value:
+                  message: Show me kitchen utensils
+      responses:
+        '201':
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponseDto'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+      summary: Start a new e-commerce conversation
+      tags:
+        - ecommerce-assistant
+  /api/ecommerce-assistant/{conversationId}:
+    put:
+      description: >-
+        Send follow-up messages using the conversationId from the initial
+        request
+      operationId: EcommerceAssistantController_continueConversation
+      parameters:
+        - name: conversationId
+          required: true
+          in: path
+          description: The conversation ID returned from the initial request
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinueConversationRequestDto'
+            examples:
+              Follow-up:
+                value:
+                  message: Do you have anything by Agatha Christie?
+              Refinement:
+                value:
+                  message: Show me something cheaper
+      responses:
+        '200':
+          description: Conversation continued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponseDto'
+        '400':
+          description: Bad request
+        '404':
+          description: Conversation not found
+      summary: Continue an existing conversation
+      tags:
+        - ecommerce-assistant
+    delete:
+      description: Delete conversation and its history from memory
+      operationId: EcommerceAssistantController_removeConversation
+      parameters:
+        - name: conversationId
+          required: true
+          in: path
+          description: The conversation ID to delete
+          schema:
+            format: uuid
+            type: string
+      responses:
+        '200':
+          description: Conversation removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Conversation removed successfully
+      summary: Remove a conversation
+      tags:
+        - ecommerce-assistant
+info:
+  title: E-commerce Assistant API
+  description: >-
+    Conversational e-commerce assistant API built with LangChain. Features
+    semantic product search and category browsing with multi-turn memory.
+  version: '1.0'
+  contact: {}
+tags:
+  - name: ecommerce-assistant
+    description: Shopping assistant endpoints
+servers:
+  - url: http://localhost:3312
+    description: Development server
+components:
+  schemas:
+    NewConversationRequestDto:
+      type: object
+      properties:
+        message:
+          type: string
+          description: User message to start the conversation
+          example: I am looking for a mystery book
+          minLength: 1
+          maxLength: 5000
+      required:
+        - message
+    ConversationResponseDto:
+      type: object
+      properties:
+        summary:
+          type: string
+          description: Assistant summary response
+          example: I found 3 mystery books for you...
+        products:
+          type: array
+          description: Retrieved product documents
+          items:
+            type: object
+          example:
+            - content: The Murder of Roger Ackroyd by Agatha Christie...
+              metadata:
+                id: abc-123
+                category: books
+        hasProducts:
+          type: boolean
+          description: Whether products are included
+          example: true
+        hasMarkdown:
+          type: boolean
+          description: Whether the summary contains Markdown formatting
+          example: true
+        conversationId:
+          type: string
+          description: Conversation ID
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - summary
+        - products
+        - hasProducts
+        - hasMarkdown
+        - conversationId
+    ContinueConversationRequestDto:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Follow-up message in the conversation
+          example: Do you have any from Agatha Christie?
+          minLength: 1
+          maxLength: 5000
+      required:
+        - message

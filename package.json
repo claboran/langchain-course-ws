@@ -20,9 +20,13 @@
     "ecommerce-assistant-api:dev": "npx nx serve ecommerce-assistant-api",
     "ecommerce-assistant-api:build": "nx build ecommerce-assistant-api",
     "ecommerce-assistant-api:test": "nx test ecommerce-assistant-api",
+    "ecommerce-assistant-ui:dev": "nx serve ecommerce-assistant-ui",
+    "ecommerce-assistant-ui:build": "nx build ecommerce-assistant-ui",
+    "ecommerce-assistant-ui:test": "nx test ecommerce-assistant-ui",
     "dev": "nx run-many -t serve -p chat-ui chat-api",
     "build": "nx run-many -t build -p chat-ui chat-api",
-    "chat-ui:generate:client": "java -jar open-api-generator-cli/openapi-generator-cli.jar generate -i apps/chat-ui/src/server/chat-api/chat-api.yaml -g typescript-fetch -o apps/chat-ui/src/server/openapi-client --additional-properties=supportsES6=true,typescriptThreePlus=true,npmVersion=1.0.0,withInterfaces=true"
+    "chat-ui:generate:client": "java -jar open-api-generator-cli/openapi-generator-cli.jar generate -i apps/chat-ui/src/server/chat-api/chat-api.yaml -g typescript-fetch -o apps/chat-ui/src/server/openapi-client --additional-properties=supportsES6=true,typescriptThreePlus=true,npmVersion=1.0.0,withInterfaces=true",
+    "ecommerce-assistant-ui-ui:generate:client": "java -jar open-api-generator-cli/openapi-generator-cli.jar generate -i apps/ecommerce-assistant-ui/src/server/ecommerce-api/ecommerce-assistant-api.yaml -g typescript-fetch -o apps/ecommerce-assistant-ui/src/server/openapi-client --additional-properties=supportsES6=true,typescriptThreePlus=true,npmVersion=1.0.0,withInterfaces=true"
   },
   "private": true,
   "devDependencies": {
@@ -95,7 +99,7 @@
     "@angular/core": "21.1.1",
     "@angular/forms": "21.1.1",
     "@angular/platform-browser": "21.1.1",
-    "@angular/platform-server": "21.1.1",
+    "@angular/platform-server": "~21.1.1",
     "@angular/router": "21.1.1",
     "@langchain/community": "^1.1.9",
     "@langchain/core": "^1.1.15",

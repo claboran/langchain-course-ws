@@ -34,6 +34,9 @@ async function bootstrap() {
     customSiteTitle: 'E-commerce Assistant API',
     customfavIcon: 'https://nestjs.com/img/logo-small.svg',
     customCss: '.swagger-ui .topbar { display: none }',
+    raw: ['json', 'yaml'],
+    jsonDocumentUrl: '/api-json',
+    yamlDocumentUrl: '/api-yaml',
   });
 
   const port = process.env['PORT'] || 3312;
