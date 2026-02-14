@@ -5,7 +5,6 @@ import { ContinueChatRequestDto } from './dto/continue-chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import { ChatResult } from './chat.model';
 import { AgentService } from './agent.service';
-import { UserContextService } from './user-context.service';
 import { ChatMemoryService } from './chat-memory.service';
 
 @Injectable()
@@ -14,11 +13,12 @@ export class ChatService {
 
   constructor(
     private readonly agentService: AgentService,
-    private readonly userContextService: UserContextService,
     private readonly chatMemoryService: ChatMemoryService,
   ) {}
 
-  async createConversation(request: NewChatRequestDto): Promise<ChatResponseDto> {
+  async createConversation(
+    request: NewChatRequestDto,
+  ): Promise<ChatResponseDto> {
     const conversationId = randomUUID();
     this.#logger.log(`Creating new conversation with ID: ${conversationId}`);
     return this.processMessage(conversationId, request.message, request.user);
@@ -43,7 +43,9 @@ export class ChatService {
     user: string,
   ): Promise<ChatResponseDto> {
     try {
-      this.#logger.log(`Processing message for conversation ${conversationId} from user ${user}`);
+      this.#logger.log(
+        `Processing message for conversation ${conversationId} from user ${user}`,
+      );
 
       // Configure the thread for this conversation
       // LangChain will use conversationId as the thread_id to persist conversation state
@@ -52,23 +54,29 @@ export class ChatService {
         configurable: {
           thread_id: conversationId,
           userName: user,
-        }
+        },
       };
 
-      this.#logger.debug(`Config prepared with thread_id: ${conversationId}, userName: ${user}`);
+      this.#logger.debug(
+        `Config prepared with thread_id: ${conversationId}, userName: ${user}`,
+      );
 
       // Get the agent from the agent service
       const agent = this.agentService.getAgent();
 
       // Create system prompt that encourages tool usage
       const systemPrompt = this.createSystemPrompt();
-      this.#logger.debug('System prompt created with personalized instructions');
+      this.#logger.debug(
+        'System prompt created with personalized instructions',
+      );
 
       // Invoke the agent with system prompt and user's message
       // The agent will automatically use the get_user_info tool when needed
       // User context (conversationId and userName) is passed via config.configurable
       // The checkpointer will persist conversation history per thread_id
-      this.#logger.log('Invoking agent - expecting tool usage for personalization');
+      this.#logger.log(
+        'Invoking agent - expecting tool usage for personalization',
+      );
       const result = await agent.invoke(
         {
           messages: [
@@ -83,8 +91,12 @@ export class ChatService {
       // When using toolStrategy, the structured output is in result.structuredResponse
       const chatResult = result.structuredResponse as ChatResult;
 
-      this.#logger.log(`Agent response generated with confidence: ${chatResult.confidence}`);
-      this.#logger.debug(`Response preview: ${chatResult.response.substring(0, 100)}...`);
+      this.#logger.log(
+        `Agent response generated with confidence: ${chatResult.confidence}`,
+      );
+      this.#logger.debug(
+        `Response preview: ${chatResult.response.substring(0, 100)}...`,
+      );
 
       return ChatResponseDto.from({
         message: chatResult.response,

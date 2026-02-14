@@ -124,6 +124,13 @@ The workspace is organized into several applications and libraries:
   - Supports both synchronous and asynchronous configuration.
   - Enables dependency injection across the workspace.
 
+- **`communication` (`libs/communication`)**: Shared utilities for API communication, validation, and error handling.
+  - 📖 [Detailed Documentation](libs/communication/README.md)
+  - Zod schema validation with structured error responses.
+  - Standardized API error handling wrappers.
+  - Type-safe conversation ID validation.
+  - Used by chat-ui and ecommerce-assistant-ui server routes.
+
 ---
 
 ## 🛠️ Tech Stack
@@ -184,6 +191,8 @@ graph TD;
     O[Zod Schemas] --> B;
     O --> C;
     P[Model Provider] --> C;
+    Q[Communication Utils] --> B;
+    Q --> C;
     end
 ```
 
@@ -195,6 +204,65 @@ graph TD;
 5. **Model Integration**: Mistral AI generates response using the configured model
 6. **Response Handling**: Backend returns structured response with conversation context
 7. **Content Rendering**: Chat UI displays response with markdown, code highlighting, and diagrams
+
+---
+
+## 📚 Buildable Libraries & Shared Code
+
+This workspace uses **buildable libraries** with npm workspaces for code sharing between applications. This enables:
+- ✅ Type-safe imports across apps
+- ✅ Shared validation logic (Zod schemas)
+- ✅ Reusable utility functions
+- ✅ Nx build caching and optimization
+
+### Shared Libraries
+
+- **`@langchain-course-ws/communication`**: Validation utilities (`safeParseOrThrow`, `callWithErrorHandling`)
+- **`@langchain-course-ws/model-provider`**: LangChain model configuration (Mistral AI, Ollama embeddings)
+- **`@langchain-course-ws/chat-components`**: Reusable Angular chat UI components
+
+### Key Configuration
+
+**NPM Workspaces** (`package.json`):
+```json
+{
+  "workspaces": ["dist/libs/*"]
+}
+```
+
+This creates Node.js-resolvable symlinks:
+```
+node_modules/@langchain-course-ws/communication → dist/libs/communication
+```
+
+**Auto-Build Dependencies** (`nx.json`):
+```json
+{
+  "targetDefaults": {
+    "@analogjs/platform:vite-dev-server": {
+      "dependsOn": ["^build"]
+    }
+  }
+}
+```
+
+Libraries are automatically built before serving applications.
+
+### Development Workflow
+
+```bash
+# Libraries auto-build, no manual steps needed
+nx serve chat-ui
+
+# If you add a new library, recreate symlinks
+npm install --legacy-peer-deps
+```
+
+**📖 Full Documentation**: See [docs/BUILDABLE_LIBRARIES.md](./docs/BUILDABLE_LIBRARIES.md) for complete details on:
+- How buildable libraries work with AnalogJS SSR
+- Adding new libraries
+- Troubleshooting module resolution
+- Import guidelines
 
 ---
 
@@ -331,6 +399,7 @@ npx nx run-many -t test
 npm run chat-api:test
 npm run chat-ui:test
 npm run chat-components:test
+npm run communication:test
 ```
 
 ---
@@ -357,6 +426,7 @@ npm run chat-components:test
 **Libraries:**
 - [Chat Components](libs/chat-components/README.md) - Reusable Angular chat UI components
 - [Model Provider](libs/model-provider/README.md) - Centralized Mistral AI configuration
+- [Communication](libs/communication/README.md) - Shared API utilities, validation, and error handling
 
 **Infrastructure & Services:**
 - [Infrastructure Setup](iac/README.md) - Docker configurations for PostgreSQL and Ollama
@@ -426,6 +496,7 @@ langchain-course-ws/
 │   └── hello-agent/                 # CLI demo tool
 ├── libs/
 │   ├── chat-components/             # Reusable Angular UI components
+│   ├── communication/               # Shared API utilities and validation
 │   └── model-provider/              # Mistral AI configuration library
 ├── iac/
 │   ├── docker-compose.postgres.yml  # PostgreSQL + pgvector
