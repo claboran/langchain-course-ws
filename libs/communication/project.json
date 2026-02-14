@@ -1,0 +1,27 @@
+{
+  "name": "communication",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/communication/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/communication",
+        "main": "libs/communication/src/index.ts",
+        "tsConfig": "libs/communication/tsconfig.lib.json",
+        "assets": ["libs/communication/*.md"]
+      }
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{workspaceRoot}/coverage/communication"],
+      "options": {
+        "passWithNoTests": true,
+        "reportsDirectory": "../../coverage/communication"
+      }
+    }
+  }
+}

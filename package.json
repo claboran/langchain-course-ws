@@ -2,6 +2,9 @@
   "name": "@langchain-course-ws/source",
   "version": "0.0.0",
   "license": "MIT",
+  "workspaces": [
+    "dist/libs/*"
+  ],
   "scripts": {
     "hello-agent:dev": "ts-node -P apps/hello-agent/tsconfig.app.json apps/hello-agent/src/main.ts",
     "hello-agent:build": "nx build hello-agent",
@@ -14,6 +17,9 @@
     "chat-api:test": "nx test chat-api",
     "chat-components:test": "nx test chat-components",
     "chat-components:lint": "nx lint chat-components",
+    "communication:build": "nx build communication",
+    "communication:test": "nx test communication",
+    "communication:lint": "nx lint communication",
     "product-ingest:dev": "ts-node -r tsconfig-paths/register -P apps/product-ingest/tsconfig.app.json apps/product-ingest/src/main.ts -- ingest",
     "product-ingest:build": "nx build product-ingest",
     "product-ingest:migrate": "ts-node -r tsconfig-paths/register -P apps/product-ingest/tsconfig.app.json apps/product-ingest/scripts/run-migrations.ts",
@@ -75,6 +81,7 @@
     "eslint-plugin-playwright": "^1.6.2",
     "jiti": "2.4.2",
     "jsdom": "~22.1.0",
+    "jsonc-eslint-parser": "^2.1.0",
     "nx": "22.4.2",
     "postcss": "^8.5.6",
     "prettier": "~3.6.2",

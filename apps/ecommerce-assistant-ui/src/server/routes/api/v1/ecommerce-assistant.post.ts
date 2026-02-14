@@ -22,16 +22,13 @@ export default defineEventHandler(async (event) => {
       NewConversationRequestSchema,
       body,
     );
-
-    const responseData = await callWithErrorHandling(
+    return await callWithErrorHandling(
       () =>
         ecommerceApiClient.ecommerceAssistantControllerCreateConversation({
           newConversationRequestDto: validatedRequest,
         }),
       'E-commerce Assistant API',
     );
-
-    return responseData;
   } catch (error) {
     // Re-throw h3 errors
     if (error && typeof error === 'object' && 'statusCode' in error) {

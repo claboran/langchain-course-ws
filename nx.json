@@ -66,6 +66,9 @@
     "@nx/vitest:test": {
       "cache": true,
       "inputs": ["default", "^production"]
+    },
+    "@analogjs/platform:vite-dev-server": {
+      "dependsOn": ["^build"]
     }
   },
   "generators": {

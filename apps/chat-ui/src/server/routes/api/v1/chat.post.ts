@@ -8,7 +8,6 @@ import {
   safeParseOrThrow,
 } from '../../../utils/communication.utils';
 
-
 /**
  * POST /api/v1/chat
  *

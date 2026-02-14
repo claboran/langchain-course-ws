@@ -20,7 +20,8 @@
       ],
       "@langchain-course-ws/chat-components": [
         "libs/chat-components/src/index.ts"
-      ]
+      ],
+      "@langchain-course-ws/communication": ["libs/communication/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
