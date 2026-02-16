@@ -85,6 +85,14 @@ The workspace is organized into several applications and libraries:
   - Proxy-based integration with the backend.
   - Includes comprehensive service documentation for the chat store.
 
+- **`api-dev-mcp-server` (`apps/api-dev-mcp-server`)**: A sophisticated Model Context Protocol (MCP) server for AI-assisted API development.
+  - Generates complete OpenAPI 3.1 specifications from high-level descriptions.
+  - Provides few-shot learning prompts for REST API design patterns.
+  - Validates OpenAPI specs and adds custom endpoints.
+  - Demonstrates advanced MCP server architecture with resources, tools, and prompts.
+  - Designed for integration with LangChain agents.
+  - 📖 [Detailed Documentation](apps/api-dev-mcp-server/README.md)
+
 - **`ecommerce-assistant-api` (`apps/ecommerce-assistant-api`)**: A conversational e-commerce assistant API.
   - Semantic product search using pgvector and LangChain.
   - Multi-turn conversations with memory persistence.

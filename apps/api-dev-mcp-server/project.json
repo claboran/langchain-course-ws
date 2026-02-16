@@ -1,0 +1,68 @@
+{
+  "name": "api-dev-mcp-server",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api-dev-mcp-server/src",
+  "projectType": "application",
+  "tags": ["mcp", "api-development"],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/api-dev-mcp-server"
+      },
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "api-dev-mcp-server:build",
+        "watch": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-dev-mcp-server:build:development"
+        },
+        "production": {
+          "buildTarget": "api-dev-mcp-server:build:production"
+        }
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx watch apps/api-dev-mcp-server/src/main.ts"
+      }
+    },
+    "test-mcp": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx @modelcontextprotocol/inspector node dist/apps/api-dev-mcp-server/main.js"
+      },
+      "dependsOn": ["build"]
+    },
+    "serve-sse": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/apps/api-dev-mcp-server/main-sse.js"
+      },
+      "dependsOn": ["build"]
+    },
+    "dev-sse": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx watch apps/api-dev-mcp-server/src/main-sse.ts"
+      }
+    }
+  }
+}
