@@ -4,7 +4,7 @@
     "rootDir": ".",
     "sourceMap": true,
     "declaration": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": true,
@@ -15,6 +15,9 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@langchain/langgraph/prebuilt": [
+        "node_modules/@langchain/langgraph/dist/prebuilt/index"
+      ],
       "@langchain-course-ws/model-provider": [
         "libs/model-provider/src/index.ts"
       ],

@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: langchain-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      # Persist Redis data
+      - redis-data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - langchain-network
+
+  # RedisInsight - Official Redis Web UI
+  # Open http://localhost:5540 in your browser after first run and add a
+  # database connection: host=redis, port=6379 (no auth).
+  # Filter conversations via key pattern:
+  #   langgraph:checkpoint:<conversationId>:*
+  #   langgraph:writes:<conversationId>:*
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: langchain-redisinsight
+    restart: unless-stopped
+    ports:
+      - '5540:5540'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - langchain-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  langchain-network:
+    driver: bridge

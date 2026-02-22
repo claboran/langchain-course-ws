@@ -9,8 +9,6 @@ const CreateSpecInputSchema = z.object({
   resources: z.array(z.string()).min(1).describe('Array of resource names (e.g., ["posts", "comments"])'),
 });
 
-type CreateSpecInput = z.infer<typeof CreateSpecInputSchema>;
-
 export class CreateSpecTool {
   name = 'create_openapi_spec';
   description =
@@ -44,17 +42,12 @@ export class CreateSpecTool {
   constructor(private specsStore: SpecsStore) {}
 
   async execute(args: unknown) {
-    // Validate input
     const validated = CreateSpecInputSchema.parse(args);
-
-    // Generate OpenAPI spec
     const spec = generateOpenAPISpec(validated);
-
-    // Store spec with unique ID
     const specId = this.generateId();
-    this.specsStore.set(specId, spec);
 
-    // Return success response
+    await this.specsStore.set(specId, spec);
+
     return {
       content: [
         {
@@ -86,6 +79,6 @@ export class CreateSpecTool {
   }
 
   private generateId(): string {
-    return `spec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `spec-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 }

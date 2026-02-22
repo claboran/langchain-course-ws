@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package chat;
+
+// ChatService provides AI-powered conversational API development assistance
+service ChatService {
+  // Create a new conversation and receive a backend-generated conversation ID
+  rpc StartConversation (StartConversationRequest) returns (StartConversationResponse);
+
+  // Server-side streaming RPC for real-time chat responses
+  rpc StreamChat (ChatRequest) returns (stream ChatChunk);
+
+  // Resume a graph that was paused for human review.
+  // Returns a stream because the resumed graph may produce substantial output
+  // (e.g., when the action is "refine" and the agent re-generates the spec).
+  rpc SendFeedback (FeedbackRequest) returns (stream ChatChunk);
+
+  // Delete a conversation and its history
+  rpc DeleteConversation (DeleteRequest) returns (DeleteResponse);
+}
+
+// Request to start or continue a conversation
+message ChatRequest {
+  string conversation_id = 1;
+  string message = 2;
+  map<string, string> metadata = 3;
+}
+
+// Streamed chunk of the conversation response
+message ChatChunk {
+  oneof chunk_type {
+    TextChunk text = 1;
+    ToolCall tool_call = 2;
+    ToolResult tool_result = 3;
+    Metadata metadata = 4;
+    ErrorInfo error = 5;
+    // Sent when the graph pauses and needs human input (HITL)
+    InterruptChunk interrupt = 8;
+  }
+
+  bool is_final = 6;
+  int32 sequence = 7;
+}
+
+// Text content chunk (streamed incrementally)
+message TextChunk {
+  string content = 1;
+  string role = 2;
+}
+
+// Tool call information
+message ToolCall {
+  string tool_id = 1;
+  string tool_name = 2;
+  string arguments = 3;
+
+  enum Status {
+    PENDING = 0;
+    IN_PROGRESS = 1;
+    COMPLETED = 2;
+    FAILED = 3;
+  }
+  Status status = 4;
+}
+
+// Tool execution result
+message ToolResult {
+  string tool_id = 1;
+  string tool_name = 2;
+  string result = 3;
+  bool success = 4;
+  string error_message = 5;
+}
+
+// HITL interrupt — graph paused awaiting human review of a generated spec
+message InterruptChunk {
+  // Opaque ID; pass back in FeedbackRequest.interrupt_id to resume the graph
+  string interrupt_id = 1;
+  string spec_id = 2;
+  string spec_title = 3;
+  int32 endpoint_count = 4;
+  string message = 5;
+}
+
+// Final metadata sent at end of stream
+message Metadata {
+  string conversation_id = 1;
+  int32 message_count = 2;
+  bool has_markdown = 3;
+  bool has_tool_calls = 4;
+  TokenUsage token_usage = 5;
+  string timestamp = 6;
+  string model = 7;
+}
+
+// Token usage tracking
+message TokenUsage {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+  double estimated_cost = 4;
+}
+
+// Error information
+message ErrorInfo {
+  string code = 1;
+  string message = 2;
+  string details = 3;
+  bool retryable = 4;
+}
+
+// Human-in-the-loop feedback after reviewing a generated spec
+message FeedbackRequest {
+  string conversation_id = 1;
+  // interrupt_id from the InterruptChunk that triggered this review
+  string interrupt_id = 2;
+  // "approve" | "refine" | "reject"
+  string action = 3;
+  // Required when action = "refine"; describes what should change
+  string notes = 4;
+}
+
+message FeedbackResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteRequest {
+  string conversation_id = 1;
+}
+
+message DeleteResponse {
+  string message = 1;
+  int32 messages_deleted = 2;
+}
+
+// Start a new conversation — backend generates the conversation ID
+message StartConversationRequest {
+  // Optional metadata (e.g., user info, client version)
+  map<string, string> metadata = 1;
+}
+
+message StartConversationResponse {
+  string conversation_id = 1;
+}

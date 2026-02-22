@@ -30,7 +30,7 @@ export class ValidateSpecTool {
     const validated = ValidateSpecInputSchema.parse(args);
 
     // Get spec from store
-    const spec = this.specsStore.get(validated.specId);
+    const spec = await this.specsStore.get(validated.specId);
     if (!spec) {
       throw new Error(`OpenAPI spec with ID "${validated.specId}" not found`);
     }

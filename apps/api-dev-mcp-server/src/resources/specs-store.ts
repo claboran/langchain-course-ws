@@ -1,56 +1,94 @@
+import Redis from 'ioredis';
+
 /**
- * Singleton store for managing OpenAPI specifications in memory
+ * Redis-backed store for OpenAPI specifications.
+ *
+ * Key layout:
+ *   Spec data   : `mcp:spec:{id}`               (JSON string)
+ *   Order index : `mcp:specs:index`              (sorted set, score = insertion timestamp)
+ *
+ * All operations are async. Call `SpecsStore.initialize(redis)` once at startup
+ * before using `SpecsStore.getInstance()`.
  */
 export class SpecsStore {
   private static instance: SpecsStore;
-  private specs: Map<string, any>;
 
-  private constructor() {
-    this.specs = new Map();
+  private readonly prefix = 'mcp:spec:';
+  private readonly indexKey = 'mcp:specs:index';
+
+  private constructor(private readonly redis: Redis) {}
+
+  static initialize(redis: Redis): SpecsStore {
+    SpecsStore.instance = new SpecsStore(redis);
+    return SpecsStore.instance;
   }
 
   static getInstance(): SpecsStore {
     if (!SpecsStore.instance) {
-      SpecsStore.instance = new SpecsStore();
+      throw new Error(
+        'SpecsStore not initialized. Call SpecsStore.initialize(redis) before use.'
+      );
     }
     return SpecsStore.instance;
   }
 
-  set(id: string, spec: any): void {
-    this.specs.set(id, spec);
+  async set(id: string, spec: any): Promise<void> {
+    await this.redis
+      .pipeline()
+      .set(`${this.prefix}${id}`, JSON.stringify(spec))
+      .zadd(this.indexKey, Date.now(), id)
+      .exec();
   }
 
-  get(id: string): any | undefined {
-    return this.specs.get(id);
+  async get(id: string): Promise<any | undefined> {
+    const raw = await this.redis.get(`${this.prefix}${id}`);
+    return raw ? JSON.parse(raw) : undefined;
   }
 
-  has(id: string): boolean {
-    return this.specs.has(id);
+  async has(id: string): Promise<boolean> {
+    return (await this.redis.exists(`${this.prefix}${id}`)) === 1;
   }
 
-  delete(id: string): boolean {
-    return this.specs.delete(id);
+  async delete(id: string): Promise<boolean> {
+    const results = await this.redis
+      .pipeline()
+      .del(`${this.prefix}${id}`)
+      .zrem(this.indexKey, id)
+      .exec();
+    const deleted = (results?.[0]?.[1] as number) ?? 0;
+    return deleted > 0;
   }
 
-  list(): Array<{ id: string; spec: any }> {
-    return Array.from(this.specs.entries()).map(([id, spec]) => ({
-      id,
-      spec,
-    }));
+  /** Returns specs ordered newest-first */
+  async list(): Promise<Array<{ id: string; spec: any }>> {
+    const ids = await this.redis.zrevrange(this.indexKey, 0, -1);
+    const entries: Array<{ id: string; spec: any }> = [];
+    for (const id of ids) {
+      const spec = await this.get(id);
+      if (spec) entries.push({ id, spec });
+    }
+    return entries;
   }
 
-  clear(): void {
-    this.specs.clear();
+  async clear(): Promise<void> {
+    const ids = await this.redis.zrange(this.indexKey, 0, -1);
+    if (ids.length > 0) {
+      const pipeline = this.redis.pipeline();
+      ids.forEach((id) => pipeline.del(`${this.prefix}${id}`));
+      pipeline.del(this.indexKey);
+      await pipeline.exec();
+    }
   }
 
-  getMetadata(id: string): { title: string; description: string; version: string } | undefined {
-    const spec = this.get(id);
+  async getMetadata(
+    id: string
+  ): Promise<{ title: string; description: string; version: string } | undefined> {
+    const spec = await this.get(id);
     if (!spec?.info) return undefined;
-
     return {
-      title: spec.info.title || 'Untitled API',
-      description: spec.info.description || '',
-      version: spec.info.version || '1.0.0',
+      title: spec.info.title ?? 'Untitled API',
+      description: spec.info.description ?? '',
+      version: spec.info.version ?? '1.0.0',
     };
   }
 }
