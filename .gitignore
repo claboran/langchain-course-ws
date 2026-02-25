@@ -60,3 +60,5 @@ open-api-generator-cli/*.jar
 logs/
 *.log
 !package-lock.json
+
+memory/

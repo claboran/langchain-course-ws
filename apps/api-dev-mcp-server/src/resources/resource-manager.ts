@@ -20,7 +20,7 @@ export class ResourceManager {
       const resources = [];
 
       // Dynamic resources for each OpenAPI spec
-      const specs = this.specsStore.list();
+      const specs = await this.specsStore.list();
       for (const { id, spec } of specs) {
         resources.push({
           uri: `openapi://spec/${id}`,
@@ -55,7 +55,7 @@ export class ResourceManager {
       // Handle OpenAPI spec resources
       if (uri.startsWith('openapi://spec/')) {
         const id = uri.replace('openapi://spec/', '');
-        const spec = this.specsStore.get(id);
+        const spec = await this.specsStore.get(id);
 
         if (!spec) {
           throw new Error(`OpenAPI spec with ID "${id}" not found`);

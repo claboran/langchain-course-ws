@@ -4,9 +4,10 @@ This folder contains Docker Compose configurations for local development infrast
 
 ## 📋 Overview
 
-The infrastructure consists of two main components:
+The infrastructure consists of three main components:
 1. **PostgreSQL with pgvector**: Vector database for semantic product search
-2. **Nginx Proxy for Ollama**: (WSL2 only) Proxy to access Ollama running on Windows host
+2. **Redis**: Conversation checkpointing and caching for LangGraph agents
+3. **Nginx Proxy for Ollama**: (WSL2 only) Proxy to access Ollama running on Windows host
 
 ## 🐘 PostgreSQL with pgvector
 
@@ -70,6 +71,100 @@ The database contains:
 - **Indexes**:
   - HNSW index on `embedding` for fast similarity search
   - B-tree index on `category` for filtering
+
+## 🗄️ Redis
+
+### What It Does
+
+Provides Redis 7 for persistent conversation checkpointing with LangGraph agents. Replaces in-memory `MemorySaver` with persistent storage, enabling conversation history to survive server restarts and supporting horizontal scaling.
+
+**Configuration**: `docker-compose.redis.yml`
+
+### Features
+
+- **Persistence**: AOF (Append-Only File) with fsync every second
+- **Memory Management**: 512MB max with LRU eviction
+- **Health Checks**: Automatic health monitoring
+- **Optional UI**: Redis Commander for visual inspection
+
+### Starting Redis
+
+```bash
+# Start Redis
+docker-compose -f iac/docker-compose.redis.yml up -d
+
+# Start with Redis Commander UI
+docker-compose -f iac/docker-compose.redis.yml --profile tools up -d
+
+# View logs
+docker-compose -f iac/docker-compose.redis.yml logs -f
+
+# Stop Redis
+docker-compose -f iac/docker-compose.redis.yml down
+
+# Stop and remove volumes (clears all data)
+docker-compose -f iac/docker-compose.redis.yml down -v
+```
+
+### Connection Details
+
+| Parameter | Value |
+|-----------|-------|
+| Host | `localhost` |
+| Port | `6379` |
+| Connection String | `redis://localhost:6379` |
+| UI (optional) | `http://localhost:8081` |
+
+### Accessing Redis
+
+```bash
+# Using redis-cli (if installed)
+redis-cli
+
+# Using Docker exec
+docker exec -it langchain-redis redis-cli
+
+# Example commands
+127.0.0.1:6379> PING
+PONG
+
+127.0.0.1:6379> KEYS checkpoint:*
+1) "checkpoint:conversation-uuid-here"
+
+127.0.0.1:6379> GET "checkpoint:conversation-uuid"
+"{...checkpoint data...}"
+
+127.0.0.1:6379> INFO memory
+# memory: ...
+```
+
+### Redis Commander UI
+
+Access the Redis Commander web UI at `http://localhost:8081` when started with `--profile tools`.
+
+**Features:**
+- Browse keys by pattern
+- View key values and TTLs
+- Execute Redis commands
+- Monitor real-time statistics
+
+### Data Structure
+
+Conversation checkpoints are stored as JSON:
+
+```json
+{
+  "key": "checkpoint:conversation-uuid",
+  "value": {
+    "thread_id": "conversation-uuid",
+    "checkpoint": {
+      "messages": [...],
+      "metadata": {...}
+    },
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+```
 
 ## 🔄 Nginx Proxy for Ollama
 
@@ -150,6 +245,11 @@ Add these to your `.env` file in the workspace root:
 # PostgreSQL Database
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/langchain
 
+# Redis
+REDIS_URL=redis://localhost:6379
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
 # Ollama Embeddings
 # For WSL2 with Windows host Ollama:
 OLLAMA_BASE_URL=http://localhost:11435
@@ -158,8 +258,9 @@ OLLAMA_BASE_URL=http://localhost:11435
 # OLLAMA_BASE_URL=http://localhost:11434
 
 # API Ports
-PORT=3312                    # E-commerce assistant API
+ECOMMERCE_API_PORT=3312     # E-commerce assistant API
 CHAT_API_PORT=3311          # Chat API
+API_DEV_ASSISTANT_PORT=3313 # API Development assistant API
 ```
 
 ## 📊 Monitoring
@@ -224,16 +325,18 @@ docker-compose -f iac/docker-compose.nginx.yml down
 ```bash
 # 1. Start all infrastructure
 docker-compose -f iac/docker-compose.postgres.yml up -d
+docker-compose -f iac/docker-compose.redis.yml up -d
 docker-compose -f iac/docker-compose.nginx.yml up -d  # WSL2 only
 
-# 2. Wait for PostgreSQL to be ready
+# 2. Wait for services to be ready
 sleep 5
 
-# 3. Run migrations
+# 3. Run migrations (for e-commerce assistant)
 npm run product-ingest:migrate
 
 # 4. Verify setup
 psql postgresql://postgres:postgres@localhost:5432/langchain -c "\dt"
+docker exec -it langchain-redis redis-cli PING
 curl http://localhost:11435/api/tags  # WSL2 only
 
 # 5. Ingest products (optional, takes 5-30+ minutes depending on hardware)

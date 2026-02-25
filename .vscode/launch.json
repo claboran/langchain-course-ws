@@ -6,13 +6,19 @@
       "request": "launch",
       "name": "Debug hello-agent with Nx",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "hello-agent"],
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "hello-agent"
+      ],
       "env": {
         "NODE_OPTIONS": "--inspect=9229"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/hello-agent/dist/**/*.(m|c|)js",
@@ -24,13 +30,19 @@
       "request": "launch",
       "name": "Debug chat-api with Nx",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "chat-api"],
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "chat-api"
+      ],
       "env": {
         "NODE_OPTIONS": "--inspect=9230"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/apps/chat-api/dist/**/*.(m|c|)js",
@@ -42,13 +54,19 @@
       "request": "launch",
       "name": "Debug product-ingest with Nx",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "product-ingest"],
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "product-ingest"
+      ],
       "env": {
         "NODE_OPTIONS": "--inspect=9231"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/apps/product-ingest/dist/**/*.(m|c|)js",
@@ -60,16 +78,46 @@
       "request": "launch",
       "name": "Debug ecommerce-assistant-api with Nx",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "ecommerce-assistant-api"],
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "ecommerce-assistant-api"
+      ],
       "env": {
         "NODE_OPTIONS": "--inspect=9232"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/apps/ecommerce-assistant-api/dist/**/*.(m|c|)js",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug api-dev-assistant-api with Nx",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "api-dev-assistant-api"
+      ],
+      "env": {
+        "NODE_OPTIONS": "--inspect=9233"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/apps/api-dev-assistant-api/dist/**/*.(m|c|)js",
         "!**/node_modules/**"
       ]
     }

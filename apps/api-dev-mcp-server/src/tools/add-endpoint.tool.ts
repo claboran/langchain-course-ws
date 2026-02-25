@@ -56,7 +56,7 @@ export class AddEndpointTool {
     const validated = AddEndpointInputSchema.parse(args);
 
     // Get spec from store
-    const spec = this.specsStore.get(validated.specId);
+    const spec = await this.specsStore.get(validated.specId);
     if (!spec) {
       throw new Error(`OpenAPI spec with ID "${validated.specId}" not found`);
     }
@@ -72,7 +72,7 @@ export class AddEndpointTool {
     );
 
     // Update spec in store
-    this.specsStore.set(validated.specId, spec);
+    await this.specsStore.set(validated.specId, spec);
 
     // Return success response
     return {

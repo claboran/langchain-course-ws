@@ -5,17 +5,28 @@
  * This version can run as a standalone HTTP service, perfect for Docker/K8s
  */
 
+import Redis from 'ioredis';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { SpecsStore } from './resources/specs-store.js';
 import { ResourceManager } from './resources/resource-manager.js';
 import { ToolManager } from './tools/tool-manager.js';
 import { PromptManager } from './prompts/prompt-manager.js';
 import express from 'express';
 
 const PORT = process.env.MCP_PORT ? parseInt(process.env.MCP_PORT) : 3100;
-const HOST = process.env.MCP_HOST || '0.0.0.0'; // Bind to all interfaces for Docker/K8s
+const HOST = process.env.MCP_HOST ?? '0.0.0.0';
 
 async function main() {
+  // Initialize Redis-backed SpecsStore once for all SSE connections
+  const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+    maxRetriesPerRequest: 3,
+    retryStrategy: (times) => Math.min(times * 50, 2000),
+  });
+
+  redis.on('error', (err) => console.error('Redis error:', err));
+  SpecsStore.initialize(redis);
+
   const app = express();
 
   // Enable JSON parsing for POST requests
@@ -94,6 +105,7 @@ async function main() {
     console.error('');
     console.error('📋 Capabilities:   Resources, Tools, Prompts');
     console.error('🌐 Transport:      Server-Sent Events (SSE)');
+    console.error('💾 Persistence:    Redis specs store');
     console.error('🐳 Docker/K8s:     ✅ Ready');
     console.error('');
   });
