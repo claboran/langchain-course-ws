@@ -2,66 +2,80 @@
 
 A NestJS gRPC microservice that provides AI-powered API development assistance. It uses **LangGraph** to orchestrate a stateful agent, **Mistral AI** as the LLM, **MCP (Model Context Protocol)** servers for tool access, **Redis** for persistent conversation history, and includes a full **Human-in-the-Loop (HITL)** review workflow for generated OpenAPI specifications.
 
+The agent operates in two distinct phases on a single shared graph and conversation thread:
+
+- **Phase 1 — Clarification**: conversational requirements gathering (unary gRPC, no streaming)
+- **Phase 2 — API Design**: tool-augmented spec generation with HITL review (server-side streaming gRPC)
+
 ---
 
 ## Table of Contents
 
 1. [Features](#features)
 2. [Architecture Overview](#architecture-overview)
-3. [LangGraph Agent](#langgraph-agent)
+3. [Two-Phase Design](#two-phase-design)
+   - [Phase 1 — Clarification](#phase-1--clarification)
+   - [Phase 2 — API Design](#phase-2--api-design)
+   - [Phase Transition](#phase-transition)
+4. [LangGraph Agent](#langgraph-agent)
    - [Graph Topology](#graph-topology)
    - [Node Reference](#node-reference)
    - [Routing Functions](#routing-functions)
    - [Graph State Schema](#graph-state-schema)
-4. [Human-in-the-Loop (HITL)](#human-in-the-loop-hitl)
+5. [Human-in-the-Loop (HITL)](#human-in-the-loop-hitl)
    - [HITL Flow](#hitl-flow)
    - [HITL Data Contracts](#hitl-data-contracts)
-5. [Intent Classification](#intent-classification)
-6. [Streaming Pipeline](#streaming-pipeline)
+6. [Intent Classification](#intent-classification)
+7. [Streaming Pipeline](#streaming-pipeline)
    - [AgentEvent Types](#agentevent-types)
    - [Stream Processing State](#stream-processing-state)
-7. [gRPC API Reference](#grpc-api-reference)
+8. [gRPC API Reference](#grpc-api-reference)
    - [Service Definition](#service-definition)
    - [StartConversation](#startconversation)
+   - [ClarifyChat](#clarifychat)
+   - [TransitionToApiPhase](#transitiontoapiphase)
    - [StreamChat](#streamchat)
    - [SendFeedback](#sendfeedback)
    - [DeleteConversation](#deleteconversation)
    - [ChatChunk Variants](#chatchunk-variants)
-8. [MCP Integration](#mcp-integration)
+9. [MCP Integration](#mcp-integration)
    - [MCP Configuration](#mcp-configuration)
    - [Tool Naming Convention](#tool-naming-convention)
    - [JSON Schema → Zod Conversion](#json-schema--zod-conversion)
    - [HITL-Triggering Tools](#hitl-triggering-tools)
-9. [Redis Checkpointing](#redis-checkpointing)
-   - [Key Layout](#key-layout)
-   - [TTL and Retention](#ttl-and-retention)
-10. [Project Structure](#project-structure)
-11. [Setup](#setup)
+10. [Redis Checkpointing](#redis-checkpointing)
+    - [Key Layout](#key-layout)
+    - [TTL and Retention](#ttl-and-retention)
+11. [Project Structure](#project-structure)
+12. [Setup](#setup)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
     - [Environment Configuration](#environment-configuration)
-12. [Running](#running)
-13. [Manual Testing with grpcurl](#manual-testing-with-grpcurl)
-    - [Basic Conversation](#basic-conversation)
+13. [Running](#running)
+14. [Manual Testing with grpcurl](#manual-testing-with-grpcurl)
+    - [Discover the Service](#discover-the-service)
+    - [Full Two-Phase Workflow](#full-two-phase-workflow)
+    - [Phase 2 Only (skip clarification)](#phase-2-only-skip-clarification)
     - [API Design with HITL](#api-design-with-hitl)
     - [Conversation Management](#conversation-management)
-14. [Automated Tests](#automated-tests)
+15. [Automated Tests](#automated-tests)
     - [Unit Tests](#unit-tests)
     - [Integration Tests](#integration-tests)
-15. [Key Technologies](#key-technologies)
+16. [Key Technologies](#key-technologies)
 
 ---
 
 ## Features
 
-- **gRPC Streaming** — server-side streaming for real-time chat responses via `StreamChat` and `SendFeedback` RPCs
+- **Two-Phase Conversation** — Phase 1 gathers requirements conversationally (unary); Phase 2 does tool-augmented API design (streaming). Both phases share one `thread_id` and full conversation history via Redis
+- **gRPC Streaming** — server-side streaming for real-time chat responses via `StreamChat` and `SendFeedback` RPCs; unary RPCs for `ClarifyChat` and `TransitionToApiPhase`
 - **LangGraph Agent** — stateful, multi-turn agent graph with conditional routing, tool nodes, and interrupt support
 - **Intent Classification** — keyword-based classifier routes each message to the optimal LLM invocation strategy (`api_design`, `refinement`, `general`)
 - **Human-in-the-Loop (HITL)** — graph pauses after spec-generating tool calls and waits for human `approve` / `refine` / `reject` feedback before continuing
 - **MCP Integration** — connects to any number of Model Context Protocol servers at startup; their tools are exposed to the LLM via LangChain's `DynamicStructuredTool`
 - **Redis Checkpointing** — custom `BaseCheckpointSaver` persists full conversation state; conversations survive process restarts
 - **Token Usage Tracking** — every stream ends with a `METADATA` event carrying prompt/completion token counts
-- **Type-Safe proto** — generated TypeScript types from `chat.proto` via `ts-proto`
+- **Type-Safe proto** — generated TypeScript types from `chat.proto` via `ts-proto` (`npm run proto:generate`)
 
 ---
 
@@ -109,49 +123,110 @@ A NestJS gRPC microservice that provides AI-powered API development assistance. 
 
 ---
 
+## Two-Phase Design
+
+```
+Phase 1: Clarification  ──[TransitionToApiPhase]──▶  Phase 2: API Design
+ ClarifyChat (unary gRPC)                             StreamChat (streaming gRPC)
+         │                                                       │
+         └────────── same conversationId / thread_id ───────────┘
+                        (Redis checkpointer = full shared history)
+```
+
+Both phases run inside the **same `StateGraph`** using a `phase` field in state to drive routing at `START`. The conversation history accumulates across both phases — the API design phase sees everything the user said during clarification.
+
+### Phase 1 — Clarification
+
+The assistant acts as an API design consultant, gathering requirements through natural conversation before any tools are used:
+
+- **Transport**: unary gRPC (`ClarifyChat`) — one request / one response per turn, no streaming
+- **LLM behaviour**: tools available with `tool_choice: 'auto'` — the model decides when to call them (e.g. fetching API standards from MCP). No forcing
+- **Persona**: creative, exploratory, asks targeted follow-up questions about purpose, resources, auth, validation, edge cases, consumers
+- **Output format**: markdown and/or mermaid diagrams when they add clarity; plain prose otherwise
+- **Routing**: `START → clarify → [tools → clarify]* → END`
+
+### Phase 2 — API Design
+
+The existing tool-augmented, streaming workflow — unchanged:
+
+- **Transport**: server-side streaming gRPC (`StreamChat`, `SendFeedback`)
+- **LLM behaviour**: intent-based tool forcing (`api_design` / `refinement` → `tool_choice: 'any'`)
+- **Context**: the `clarificationSummary` (requirements contract) is injected into the system prompt, grounding the agent in what was agreed during Phase 1
+- **Routing**: `START → classify → agent → [tools → after_tools → [human_review | agent]]* → END`
+
+### Phase Transition
+
+Triggered explicitly by the client when requirements are clear enough:
+
+1. Client calls `TransitionToApiPhase(conversation_id)`
+2. Server makes an LLM call to generate a structured requirements document (`clarificationSummary`) from the conversation history
+3. `graph.updateState()` sets `phase: 'api_design'` and stores the summary
+4. Response returns the summary so the client can display it
+5. All subsequent `StreamChat` calls use the api_design routing
+
+**Error handling**: if `TransitionToApiPhase` is called on a conversation with no messages, it transitions gracefully with an empty summary — the api_design phase still works, just without a requirements contract.
+
+---
+
 ## LangGraph Agent
 
 ### Graph Topology
 
 ```
-START
-  │
-  ▼
-classify ──► agent ──► (no tool calls) ──► END
-                 │
-                 └──► (tool calls present)
-                           │
-                           ▼
-                         tools
-                           │
-                           ▼
-                       after_tools
-                           │
-                 ┌─────────┴─────────┐
-                 │ (activeSpecId set) │ (no active spec)
-                 ▼                   ▼
-           human_review           agent ──► …
-                 │
-        ┌────────┴────────┐
-        │  approve/reject  │  refine
-        ▼                  ▼
-       END              agent ──► END
+                          ┌─────────────────────────────────────────────────┐
+                          │  Phase 1: Clarification (phase = 'clarification')│
+                          │                                                   │
+START ──[routeByPhase]──► clarify ──[shouldClarifyTools]──► tools ──┐        │
+                          │   ▲                                      │        │
+                          │   └──────────────────────────────────────┘        │
+                          │   └──► END  (no tool calls)                       │
+                          └─────────────────────────────────────────────────┘
+
+                          ┌─────────────────────────────────────────────────────────┐
+                          │  Phase 2: API Design (phase = 'api_design')             │
+                          │                                                          │
+START ──[routeByPhase]──► classify ──► agent ──► (no tool calls) ──► END            │
+                                           │                                         │
+                                           └──► (tool calls present)                │
+                                                       │                            │
+                                                     tools                          │
+                                                       │                            │
+                                              [routeAfterTools]                     │
+                                                       │                            │
+                                                  after_tools                       │
+                                                       │                            │
+                                         ┌─────────────┴─────────────┐             │
+                                         │ (activeSpecId set)         │ (no spec)   │
+                                         ▼                            ▼             │
+                                   human_review                    agent ──► …      │
+                                         │                                          │
+                              ┌──────────┴──────────┐                              │
+                              │  approve / reject    │  refine                      │
+                              ▼                      ▼                              │
+                             END                  agent ──► END                    │
+                          └─────────────────────────────────────────────────────────┘
 ```
+
+> **`tools` is shared between both phases.** `routeAfterTools` sends the result to `clarify` in Phase 1 and to `after_tools` in Phase 2.
 
 ### Node Reference
 
-| Node | File | Responsibility |
-|---|---|---|
-| `classify` | `agent-graph.util.ts` | Reads the latest `HumanMessage` and sets `state.intent` using `classifyIntent()` |
-| `agent` | `agent-graph.util.ts` | Invokes the LLM (default or forced-tool model depending on intent) and appends the `AIMessage` to state |
-| `tools` | LangGraph built-in `ToolNode` | Executes all tool calls present in the last `AIMessage` and appends `ToolMessage`s |
-| `after_tools` | `agent-graph.util.ts` | Inspects the last `ToolMessage`; if it came from a spec-modifying tool, sets `state.activeSpecId` |
-| `human_review` | `agent-graph.util.ts` | Calls LangGraph `interrupt()` to pause the graph and surface a `HitlInterrupt` payload to the client |
+| Node | File | Phase | Responsibility |
+|---|---|---|---|
+| `clarify` | `agent-graph.util.ts` | Phase 1 | Conversational requirements-gathering; tools available with `auto` choice; emits markdown/mermaid responses |
+| `classify` | `agent-graph.util.ts` | Phase 2 | Reads the latest `HumanMessage` and sets `state.intent` using `classifyIntent()` |
+| `agent` | `agent-graph.util.ts` | Phase 2 | Invokes the LLM (default or forced-tool model depending on intent); injects `clarificationSummary` into system prompt |
+| `tools` | LangGraph built-in `ToolNode` | Both | Executes all tool calls present in the last `AIMessage` and appends `ToolMessage`s |
+| `after_tools` | `agent-graph.util.ts` | Phase 2 | Inspects the last `ToolMessage`; if it came from a spec-modifying tool, sets `state.activeSpecId` |
+| `human_review` | `agent-graph.util.ts` | Phase 2 | Calls LangGraph `interrupt()` to pause the graph and surface a `HitlInterrupt` payload to the client |
 
 ### Routing Functions
 
 | Function | Source → Targets | Logic |
 |---|---|---|
+| `routeByPhase` | `START` → `clarify` or `classify` | Checks `state.phase`; routes to `clarify` when `'clarification'`, `classify` when `'api_design'` |
+| `shouldClarifyTools` | `clarify` → `tools` or `END` | Routes to `tools` if the last `AIMessage` has `tool_calls`, otherwise `END` |
+| `routeAfterTools` | `tools` → `clarify` or `after_tools` | Returns `clarify` in clarification phase; `after_tools` in api_design phase |
 | `shouldContinue` | `agent` → `tools` or `END` | Routes to `tools` if the last `AIMessage` contains `tool_calls`, otherwise `END` |
 | `shouldAfterTools` | `after_tools` → `human_review` or `agent` | Routes to `human_review` when `state.activeSpecId` is set |
 | `afterHumanReview` | `human_review` → `agent` or `END` | Routes back to `agent` when the last message is a `HumanMessage` (refine case), otherwise `END` |
@@ -162,13 +237,15 @@ Defined in `agent.state.ts` using `Annotation.Root`:
 
 ```typescript
 ApiAssistantState = {
-  messages:     BaseMessage[];  // LangGraph managed channel — auto-accumulated
-  intent:       'api_design' | 'refinement' | 'general' | null;
-  activeSpecId: string | null;
+  messages:             BaseMessage[];                              // LangGraph managed channel — auto-accumulated
+  phase:                'clarification' | 'api_design';            // default: 'clarification'
+  clarificationSummary: string | null;                             // generated at phase transition; injected into api_design system prompt
+  intent:               'api_design' | 'refinement' | 'general' | null;
+  activeSpecId:         string | null;
 }
 ```
 
-The state is fully serialized to / from Redis on every checkpoint write. `MessagesZodState` is attached for LangGraph 1.x runtime validation.
+The state is fully serialized to / from Redis on every checkpoint write. `MessagesZodState` is attached for LangGraph 1.x runtime validation. The `phase` field defaults to `'clarification'` — all new conversations automatically start in Phase 1.
 
 ---
 
@@ -300,10 +377,17 @@ concat ──────────────────┘
 
 ```protobuf
 service ChatService {
+  // Conversation lifecycle
   rpc StartConversation  (StartConversationRequest) returns (StartConversationResponse);
+  rpc DeleteConversation (DeleteRequest)            returns (DeleteResponse);
+
+  // Phase 1 — Clarification (unary)
+  rpc ClarifyChat        (ChatRequest)              returns (ClarifyResponse);
+  rpc TransitionToApiPhase (TransitionRequest)      returns (TransitionResponse);
+
+  // Phase 2 — API Design (streaming)
   rpc StreamChat         (ChatRequest)              returns (stream ChatChunk);
   rpc SendFeedback       (FeedbackRequest)          returns (stream ChatChunk);
-  rpc DeleteConversation (DeleteRequest)            returns (DeleteResponse);
 }
 ```
 
@@ -320,7 +404,51 @@ message StartConversationResponse {
 }
 ```
 
-Always call this first to get a `conversation_id` before calling `StreamChat`.
+Always call this first to get a `conversation_id` before calling `ClarifyChat` or `StreamChat`.
+
+### ClarifyChat
+
+Unary RPC. Sends one turn to the clarification consultant and returns a complete response. Uses the same `ChatRequest` as `StreamChat`.
+
+```protobuf
+// Request — same as StreamChat
+message ChatRequest {
+  string conversation_id = 1;
+  string message = 2;
+  map<string, string> metadata = 3;
+}
+
+message ClarifyResponse {
+  string content         = 1;  // markdown / mermaid response
+  bool   has_markdown    = 2;  // true when content uses markdown formatting
+  bool   has_mermaid     = 3;  // true when content contains a ```mermaid block
+  string conversation_id = 4;
+}
+```
+
+The graph routes to the `clarify` node (Phase 1). If the model calls tools internally, they execute and the conversation loops back to `clarify` before returning — the client always receives a single complete response.
+
+### TransitionToApiPhase
+
+Unary RPC. Signals that requirements gathering is complete. The server:
+
+1. Reads the full clarification conversation from Redis
+2. Calls the LLM to generate a structured requirements document
+3. Writes `phase: 'api_design'` and `clarificationSummary` to graph state
+4. Returns the summary to the client
+
+```protobuf
+message TransitionRequest {
+  string conversation_id = 1;
+}
+
+message TransitionResponse {
+  string conversation_id       = 1;
+  string clarification_summary = 2;  // structured markdown requirements doc
+}
+```
+
+After this call, all subsequent `StreamChat` / `SendFeedback` calls on the same `conversation_id` use the Phase 2 routing. The `clarificationSummary` is automatically injected into the API design agent's system prompt.
 
 ### StreamChat
 
@@ -582,24 +710,37 @@ The gRPC server listens on `0.0.0.0:50051`.
 
 [`grpcurl`](https://github.com/fullstorydev/grpcurl) is the recommended CLI for exercising the gRPC API by hand. Install it via `brew install grpcurl` or download a binary from the releases page.
 
-All examples below assume the service is running on `localhost:50051` and the proto file is at `proto/chat.proto` from the workspace root.
+All examples below assume the service is running on `localhost:50051` and the proto file is at `proto/chat.proto` from the workspace root. Run all `grpcurl` commands from the **workspace root** so the `-import-path` / `-proto` flags resolve correctly.
 
-### Basic Conversation
+```bash
+# Convenience alias used in all examples below
+PROTO_FLAGS="-plaintext -import-path ./proto -proto chat.proto"
+```
 
-**1. Discover the available services:**
+### Discover the Service
 
 ```bash
 grpcurl -plaintext localhost:50051 list
 # chat.ChatService
 
 grpcurl -plaintext localhost:50051 list chat.ChatService
+# chat.ChatService.ClarifyChat
 # chat.ChatService.DeleteConversation
 # chat.ChatService.SendFeedback
 # chat.ChatService.StartConversation
 # chat.ChatService.StreamChat
+# chat.ChatService.TransitionToApiPhase
+
+# Inspect a message type
+grpcurl -plaintext localhost:50051 describe chat.ClarifyResponse
+grpcurl -plaintext localhost:50051 describe chat.ChatChunk
 ```
 
-**2. Start a new conversation (get a backend-generated ID):**
+### Full Two-Phase Workflow
+
+This is the recommended way to use the service — clarify requirements first, then generate the spec.
+
+**Step 1 — Start a conversation:**
 
 ```bash
 grpcurl -plaintext \
@@ -607,52 +748,127 @@ grpcurl -plaintext \
   localhost:50051 chat.ChatService/StartConversation
 ```
 
-Example response:
+```json
+{ "conversationId": "550e8400-e29b-41d4-a716-446655440000" }
+```
+
+Save the ID: `CONV_ID=550e8400-e29b-41d4-a716-446655440000`
+
+**Step 2 — Phase 1: Clarification turns (unary, repeat as needed):**
+
+```bash
+# First message — describe what you want to build
+grpcurl -plaintext \
+  -d '{
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message": "I want to build an API for a recipe management app"
+  }' \
+  localhost:50051 chat.ChatService/ClarifyChat
+```
+
+The response is a single `ClarifyResponse` — no streaming:
+
 ```json
 {
+  "content": "Great! To make sure I understand the scope...\n\n**Who are the consumers?** ...",
+  "hasMarkdown": true,
+  "hasMermaid": false,
   "conversationId": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
-**3. Send a general question and stream the response:**
+Continue the clarification conversation — each call is unary:
 
 ```bash
 grpcurl -plaintext \
   -d '{
     "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
-    "message": "What are the best practices for REST API versioning?"
+    "message": "Users can create recipes with ingredients and steps. They can also save favourites. No auth needed for reading, but users must register to create content."
   }' \
-  localhost:50051 chat.ChatService/StreamChat
+  localhost:50051 chat.ChatService/ClarifyChat
 ```
-
-You will receive a sequence of `ChatChunk` messages. A simple conversation produces:
-- One or more `text` chunks with the assistant's answer
-- A final `metadata` chunk (`is_final: true`) with token usage
-
-**4. Continue the same conversation (multi-turn):**
 
 ```bash
 grpcurl -plaintext \
   -d '{
     "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
-    "message": "Can you give me a concrete example with URL prefixes?"
+    "message": "Recipes have a title, description, servings count, prep time, and a list of steps. Each step has a description and optional duration."
+  }' \
+  localhost:50051 chat.ChatService/ClarifyChat
+```
+
+**Step 3 — Transition to Phase 2:**
+
+When you're satisfied with the requirements, trigger the transition. The server generates a requirements document from the conversation and flips the phase:
+
+```bash
+grpcurl -plaintext \
+  -d '{
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440000"
+  }' \
+  localhost:50051 chat.ChatService/TransitionToApiPhase
+```
+
+```json
+{
+  "conversationId": "550e8400-e29b-41d4-a716-446655440000",
+  "clarificationSummary": "## API Requirements\n\n### Purpose\nRecipe management application...\n\n### Resources\n- **Recipe** — title, description, servings, prep_time, steps[]\n- **Step** — description, duration (optional)\n- **User** — registration required for write operations\n...\n"
+}
+```
+
+Review the summary — this is the contract the API design agent will work from.
+
+**Step 4 — Phase 2: Design the API (streaming):**
+
+```bash
+grpcurl -plaintext \
+  -d '{
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message": "Generate the OpenAPI spec for the recipe API we discussed"
   }' \
   localhost:50051 chat.ChatService/StreamChat
 ```
 
-The agent remembers the full conversation history from Redis.
+You will receive a stream of `ChatChunk` messages:
+- `tool_call` — agent is calling `create_openapi_spec` with the requirements as context
+- `tool_result` — spec was created and stored
+- `interrupt` — graph paused for HITL review (see below)
+- `metadata` (`is_final: true`) — token usage summary
+
+### Phase 2 Only (skip clarification)
+
+If you already know exactly what you want, you can skip Phase 1 entirely. Just transition immediately after starting the conversation — the summary will be empty, and the agent will work from your `StreamChat` messages alone:
+
+```bash
+# Start conversation
+grpcurl -plaintext -d '{}' localhost:50051 chat.ChatService/StartConversation
+# { "conversationId": "aabbccdd-..." }
+
+# Transition immediately (empty clarification = empty summary, api_design phase)
+grpcurl -plaintext \
+  -d '{ "conversation_id": "aabbccdd-..." }' \
+  localhost:50051 chat.ChatService/TransitionToApiPhase
+
+# Go straight to StreamChat
+grpcurl -plaintext \
+  -d '{
+    "conversation_id": "aabbccdd-...",
+    "message": "Design a REST API for a todo app with users and tasks"
+  }' \
+  localhost:50051 chat.ChatService/StreamChat
+```
 
 ### API Design with HITL
 
-This scenario triggers the full Human-in-the-Loop workflow.
+This scenario demonstrates the full Human-in-the-Loop review cycle within Phase 2. Assumes you have already called `TransitionToApiPhase` and the conversation is in `api_design` phase.
 
-**1. Ask the agent to design an API:**
+**1. Ask the agent to design an API (or continue from the two-phase workflow above):**
 
 ```bash
 grpcurl -plaintext \
   -d '{
     "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
-    "message": "Design a REST API for a todo application with users and tasks"
+    "message": "Generate the OpenAPI spec for the recipe API we discussed"
   }' \
   localhost:50051 chat.ChatService/StreamChat
 ```
@@ -740,11 +956,9 @@ If the MCP tool used is `add_endpoint`, another HITL interrupt is triggered.
 
 ### Conversation Management
 
-**Inspect the describe output for a message type:**
+**Check which phase a conversation is currently in:**
 
-```bash
-grpcurl -plaintext localhost:50051 describe chat.ChatChunk
-```
+There is no dedicated RPC for this — but you can infer it from the response type. If `ClarifyChat` returns a `ClarifyResponse`, the conversation is still in Phase 1. After `TransitionToApiPhase`, all subsequent calls route through Phase 2.
 
 **Delete a conversation and its Redis state:**
 

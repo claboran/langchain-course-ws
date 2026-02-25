@@ -7,11 +7,14 @@ import { mapEventToChunk, streamChatChunks } from './chat-stream.util';
 import {
   ChatRequest,
   ChatChunk,
+  ClarifyResponse,
   DeleteRequest,
   DeleteResponse,
   FeedbackRequest,
   StartConversationRequest,
   StartConversationResponse,
+  TransitionRequest,
+  TransitionResponse,
 } from '../../generated/chat';
 
 /**
@@ -37,6 +40,46 @@ export class ChatController {
     const conversationId = this.agentService.startConversation();
     this.#logger.log(`StartConversation - generated conversationId: ${conversationId}`);
     return { conversationId };
+  }
+
+  /**
+   * Clarification phase: single conversational turn, unary (no streaming).
+   * Implements Phase 1 of the two-phase design.
+   */
+  @GrpcMethod('ChatService', 'ClarifyChat')
+  async clarifyChat(request: ChatRequest): Promise<ClarifyResponse> {
+    this.#logger.log(
+      `ClarifyChat - conversationId: ${request.conversationId}, message: ${request.message.substring(0, 50)}...`
+    );
+
+    const { content } = await this.agentService.clarifyChat(
+      request.conversationId,
+      request.message,
+    );
+
+    return {
+      content,
+      hasMarkdown: /#{1,6}\s|\*\*[^*]+\*\*|__[^_]+__|^\s*[-*+]\s/m.test(content),
+      hasMermaid: /```mermaid/.test(content),
+      conversationId: request.conversationId,
+    };
+  }
+
+  /**
+   * Transition from clarification → api_design phase.
+   * Server generates a requirements summary and flips graph state.
+   * Implements unary RPC.
+   */
+  @GrpcMethod('ChatService', 'TransitionToApiPhase')
+  async transitionToApiPhase(request: TransitionRequest): Promise<TransitionResponse> {
+    this.#logger.log(`TransitionToApiPhase - conversationId: ${request.conversationId}`);
+
+    const { summary } = await this.agentService.transitionToApiPhase(request.conversationId);
+
+    return {
+      conversationId: request.conversationId,
+      clarificationSummary: summary,
+    };
   }
 
   /**

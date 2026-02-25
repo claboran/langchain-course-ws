@@ -7,6 +7,13 @@ service ChatService {
   // Create a new conversation and receive a backend-generated conversation ID
   rpc StartConversation (StartConversationRequest) returns (StartConversationResponse);
 
+  // Unary RPC for Phase 1 (clarification): conversational requirements gathering
+  rpc ClarifyChat (ChatRequest) returns (ClarifyResponse);
+
+  // Unary RPC to transition from Phase 1 → Phase 2.
+  // Server generates a clarification summary and flips phase to 'api_design'.
+  rpc TransitionToApiPhase (TransitionRequest) returns (TransitionResponse);
+
   // Server-side streaming RPC for real-time chat responses
   rpc StreamChat (ChatRequest) returns (stream ChatChunk);
 
@@ -142,4 +149,23 @@ message StartConversationRequest {
 
 message StartConversationResponse {
   string conversation_id = 1;
+}
+
+// Phase 1 clarification response (unary)
+message ClarifyResponse {
+  string content         = 1;  // markdown / mermaid response from the consultant
+  bool   has_markdown    = 2;  // true when content contains markdown formatting
+  bool   has_mermaid     = 3;  // true when content contains a mermaid diagram block
+  string conversation_id = 4;
+}
+
+// Request to transition from clarification → api_design phase
+message TransitionRequest {
+  string conversation_id = 1;
+}
+
+// Response from phase transition — includes the generated requirements contract
+message TransitionResponse {
+  string conversation_id       = 1;
+  string clarification_summary = 2;  // structured markdown requirements doc
 }

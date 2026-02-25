@@ -152,6 +152,29 @@ export interface StartConversationResponse {
   conversationId: string;
 }
 
+/** Phase 1 clarification response (unary) */
+export interface ClarifyResponse {
+  /** markdown / mermaid response from the consultant */
+  content: string;
+  /** true when content contains markdown formatting */
+  hasMarkdown: boolean;
+  /** true when content contains a mermaid diagram block */
+  hasMermaid: boolean;
+  conversationId: string;
+}
+
+/** Request to transition from clarification → api_design phase */
+export interface TransitionRequest {
+  conversationId: string;
+}
+
+/** Response from phase transition — includes the generated requirements contract */
+export interface TransitionResponse {
+  conversationId: string;
+  /** structured markdown requirements doc */
+  clarificationSummary: string;
+}
+
 export const CHAT_PACKAGE_NAME = "chat";
 
 function createBaseChatRequest(): ChatRequest {
@@ -1237,6 +1260,161 @@ export const StartConversationResponse: MessageFns<StartConversationResponse> = 
   },
 };
 
+function createBaseClarifyResponse(): ClarifyResponse {
+  return { content: "", hasMarkdown: false, hasMermaid: false, conversationId: "" };
+}
+
+export const ClarifyResponse: MessageFns<ClarifyResponse> = {
+  encode(message: ClarifyResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.content !== "") {
+      writer.uint32(10).string(message.content);
+    }
+    if (message.hasMarkdown !== false) {
+      writer.uint32(16).bool(message.hasMarkdown);
+    }
+    if (message.hasMermaid !== false) {
+      writer.uint32(24).bool(message.hasMermaid);
+    }
+    if (message.conversationId !== "") {
+      writer.uint32(34).string(message.conversationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ClarifyResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseClarifyResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.content = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.hasMarkdown = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.hasMermaid = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.conversationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+};
+
+function createBaseTransitionRequest(): TransitionRequest {
+  return { conversationId: "" };
+}
+
+export const TransitionRequest: MessageFns<TransitionRequest> = {
+  encode(message: TransitionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.conversationId !== "") {
+      writer.uint32(10).string(message.conversationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): TransitionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseTransitionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.conversationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+};
+
+function createBaseTransitionResponse(): TransitionResponse {
+  return { conversationId: "", clarificationSummary: "" };
+}
+
+export const TransitionResponse: MessageFns<TransitionResponse> = {
+  encode(message: TransitionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.conversationId !== "") {
+      writer.uint32(10).string(message.conversationId);
+    }
+    if (message.clarificationSummary !== "") {
+      writer.uint32(18).string(message.clarificationSummary);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): TransitionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseTransitionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.conversationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.clarificationSummary = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+};
+
 /** ChatService provides AI-powered conversational API development assistance */
 
 export interface ChatServiceClient {
@@ -1247,6 +1425,17 @@ export interface ChatServiceClient {
     metadata: Metadata1,
     ...rest: any
   ): Observable<StartConversationResponse>;
+
+  /** Unary RPC for Phase 1 (clarification): conversational requirements gathering */
+
+  clarifyChat(request: ChatRequest, metadata: Metadata1, ...rest: any): Observable<ClarifyResponse>;
+
+  /**
+   * Unary RPC to transition from Phase 1 → Phase 2.
+   * Server generates a clarification summary and flips phase to 'api_design'.
+   */
+
+  transitionToApiPhase(request: TransitionRequest, metadata: Metadata1, ...rest: any): Observable<TransitionResponse>;
 
   /** Server-side streaming RPC for real-time chat responses */
 
@@ -1276,6 +1465,25 @@ export interface ChatServiceController {
     ...rest: any
   ): Promise<StartConversationResponse> | Observable<StartConversationResponse> | StartConversationResponse;
 
+  /** Unary RPC for Phase 1 (clarification): conversational requirements gathering */
+
+  clarifyChat(
+    request: ChatRequest,
+    metadata: Metadata1,
+    ...rest: any
+  ): Promise<ClarifyResponse> | Observable<ClarifyResponse> | ClarifyResponse;
+
+  /**
+   * Unary RPC to transition from Phase 1 → Phase 2.
+   * Server generates a clarification summary and flips phase to 'api_design'.
+   */
+
+  transitionToApiPhase(
+    request: TransitionRequest,
+    metadata: Metadata1,
+    ...rest: any
+  ): Promise<TransitionResponse> | Observable<TransitionResponse> | TransitionResponse;
+
   /** Server-side streaming RPC for real-time chat responses */
 
   streamChat(request: ChatRequest, metadata: Metadata1, ...rest: any): Observable<ChatChunk>;
@@ -1299,7 +1507,14 @@ export interface ChatServiceController {
 
 export function ChatServiceControllerMethods() {
   return function (constructor: Function) {
-    const grpcMethods: string[] = ["startConversation", "streamChat", "sendFeedback", "deleteConversation"];
+    const grpcMethods: string[] = [
+      "startConversation",
+      "clarifyChat",
+      "transitionToApiPhase",
+      "streamChat",
+      "sendFeedback",
+      "deleteConversation",
+    ];
     for (const method of grpcMethods) {
       const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
       GrpcMethod("ChatService", method)(constructor.prototype[method], method, descriptor);
@@ -1328,6 +1543,29 @@ export const ChatServiceService = {
     responseSerialize: (value: StartConversationResponse): Buffer =>
       Buffer.from(StartConversationResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): StartConversationResponse => StartConversationResponse.decode(value),
+  },
+  /** Unary RPC for Phase 1 (clarification): conversational requirements gathering */
+  clarifyChat: {
+    path: "/chat.ChatService/ClarifyChat",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: ChatRequest): Buffer => Buffer.from(ChatRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ChatRequest => ChatRequest.decode(value),
+    responseSerialize: (value: ClarifyResponse): Buffer => Buffer.from(ClarifyResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ClarifyResponse => ClarifyResponse.decode(value),
+  },
+  /**
+   * Unary RPC to transition from Phase 1 → Phase 2.
+   * Server generates a clarification summary and flips phase to 'api_design'.
+   */
+  transitionToApiPhase: {
+    path: "/chat.ChatService/TransitionToApiPhase",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: TransitionRequest): Buffer => Buffer.from(TransitionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): TransitionRequest => TransitionRequest.decode(value),
+    responseSerialize: (value: TransitionResponse): Buffer => Buffer.from(TransitionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): TransitionResponse => TransitionResponse.decode(value),
   },
   /** Server-side streaming RPC for real-time chat responses */
   streamChat: {
@@ -1368,6 +1606,13 @@ export const ChatServiceService = {
 export interface ChatServiceServer extends UntypedServiceImplementation {
   /** Create a new conversation and receive a backend-generated conversation ID */
   startConversation: handleUnaryCall<StartConversationRequest, StartConversationResponse>;
+  /** Unary RPC for Phase 1 (clarification): conversational requirements gathering */
+  clarifyChat: handleUnaryCall<ChatRequest, ClarifyResponse>;
+  /**
+   * Unary RPC to transition from Phase 1 → Phase 2.
+   * Server generates a clarification summary and flips phase to 'api_design'.
+   */
+  transitionToApiPhase: handleUnaryCall<TransitionRequest, TransitionResponse>;
   /** Server-side streaming RPC for real-time chat responses */
   streamChat: handleServerStreamingCall<ChatRequest, ChatChunk>;
   /**

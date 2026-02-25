@@ -60,6 +60,9 @@ export type Intent = z.infer<typeof IntentSchema>;
 const withZodSchema = <T>(schema: unknown, rest: T): T =>
   ({ schema, ...rest } as unknown as T);
 
+export const PhaseSchema = z.enum(['clarification', 'api_design']);
+export type Phase = z.infer<typeof PhaseSchema>;
+
 export const ApiAssistantState = Annotation.Root({
   // messages uses the LangGraph managed channel — history is automatically
   // accumulated and de-duplicated across graph steps.
@@ -69,6 +72,20 @@ export const ApiAssistantState = Annotation.Root({
     withZodSchema(MessagesZodState, {
       reducer: messagesStateReducer,
       default: (): BaseMessage[] => [],
+    }),
+  ),
+  /** Current phase: 'clarification' (requirements gathering) or 'api_design' (tool-augmented) */
+  phase: Annotation<Phase>(
+    withZodSchema(PhaseSchema, {
+      reducer: (_: Phase, update: Phase) => update,
+      default: (): Phase => 'clarification',
+    }),
+  ),
+  /** Structured requirements markdown generated at phase transition — grounding context for api_design */
+  clarificationSummary: Annotation<string | null>(
+    withZodSchema(z.string().nullable(), {
+      reducer: (_: string | null, update: string | null) => update,
+      default: (): string | null => null,
     }),
   ),
   /** Classified intent of the latest human message */

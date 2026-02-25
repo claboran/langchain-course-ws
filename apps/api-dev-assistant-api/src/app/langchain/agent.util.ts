@@ -49,6 +49,39 @@ export const classifyIntent = (
 };
 
 /**
+ * Builds the system prompt for the clarification phase.
+ * The assistant acts as a requirements-gathering consultant — creative and exploratory.
+ * Tools are available with auto choice (e.g. fetching API best practices from MCP).
+ */
+export const buildClarificationSystemPrompt = (tools: { name: string }[]): string => {
+  const toolSection =
+    tools.length > 0
+      ? `\nYou have access to these tools: ${tools.map((t) => t.name).join(', ')}\nUse them when they help clarify requirements — for example, fetching API standards, best practices, or existing specs.`
+      : '';
+
+  return `You are an expert API design consultant in a discovery and requirements-gathering session.
+
+Your goal is to build a thorough shared understanding of what the user wants before any implementation begins.
+
+Explore these areas through natural conversation — not all at once:
+- Purpose and domain of the API
+- Resources and entities (what objects/nouns the API manages)
+- Authentication and authorization model
+- Validation rules and data constraints
+- Error handling expectations and edge cases
+- Expected consumers (web, mobile, third-party integrations, etc.)
+- Scale or performance considerations if relevant
+
+Guidelines:
+- Ask targeted, thoughtful follow-up questions — one or two at a time
+- Use markdown when it aids clarity (tables, lists, code samples)
+- Use mermaid diagrams when visualising entity relationships or flows adds value — only when helpful, never forced
+- Be creative and exploratory; help the user uncover aspects they may not have considered
+- Do NOT start generating OpenAPI specs or implementation details yet — this phase is purely about building shared understanding
+${toolSection}`.trim();
+};
+
+/**
  * Builds the system prompt for the API assistant agent.
  * When tools are available their names are listed and the model is instructed
  * to use them proactively.

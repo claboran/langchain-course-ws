@@ -25,14 +25,34 @@ export const makeClassifyNode =
     return { intent: classifyIntent(content) };
   };
 
-/** Invoke the LLM with the current message history */
-export const makeCallModelNode =
-  (systemPrompt: string, defaultModel: any, forcedModel: any, tools: any[]) =>
+/** Clarification phase: conversational requirements-gathering node */
+export const makeClarifyNode =
+  (systemPrompt: string, model: any) =>
   async (state: ApiAssistantStateType): Promise<Partial<ApiAssistantStateType>> => {
     const hasSystem = state.messages.length > 0 && msgType(state.messages[0]) === 'system';
     const messagesWithSystem = hasSystem
       ? state.messages
       : [new SystemMessage(systemPrompt), ...state.messages];
+
+    const response = await model.invoke(messagesWithSystem);
+    return { messages: [response] };
+  };
+
+/** Invoke the LLM with the current message history */
+export const makeCallModelNode =
+  (systemPrompt: string, defaultModel: any, forcedModel: any, tools: any[]) =>
+  async (state: ApiAssistantStateType): Promise<Partial<ApiAssistantStateType>> => {
+    const hasSystem = state.messages.length > 0 && msgType(state.messages[0]) === 'system';
+
+    // Inject clarification summary into the system prompt when transitioning from phase 1
+    const effectiveSystemPrompt =
+      state.clarificationSummary
+        ? `${systemPrompt}\n\n## Agreed Requirements (from clarification phase)\n\n${state.clarificationSummary}`
+        : systemPrompt;
+
+    const messagesWithSystem = hasSystem
+      ? state.messages
+      : [new SystemMessage(effectiveSystemPrompt), ...state.messages];
 
     // Force tool usage for api_design / refinement intents; let the model decide for general queries
     const model =
@@ -115,6 +135,24 @@ export const makeHumanReviewNode =
 // ---------------------------------------------------------------------------
 // Routing functions
 // ---------------------------------------------------------------------------
+
+/** Route at START: go to clarification phase or skip straight to api_design */
+export const routeByPhase = (state: ApiAssistantStateType): 'clarify' | 'classify' =>
+  state.phase === 'clarification' ? 'clarify' : 'classify';
+
+/** Route after the clarify node: call tools if the model requested them, otherwise end */
+export const shouldClarifyTools = (state: ApiAssistantStateType): 'tools' | typeof END => {
+  const last = state.messages.at(-1) as AIMessage;
+  return last?.tool_calls && last.tool_calls.length > 0 ? 'tools' : END;
+};
+
+/**
+ * Route after the tools node.
+ * In clarification phase the tools result feeds back into the clarify node.
+ * In api_design phase it goes to after_tools for spec-detection and HITL wiring.
+ */
+export const routeAfterTools = (state: ApiAssistantStateType): 'clarify' | 'after_tools' =>
+  state.phase === 'clarification' ? 'clarify' : 'after_tools';
 
 /** Route after the agent node: call tools or end */
 export const shouldContinue = (state: ApiAssistantStateType): 'tools' | typeof END => {

@@ -111,13 +111,25 @@ export class RedisCheckpointer extends BaseCheckpointSaver {
     const threadId = config.configurable?.thread_id;
     if (!threadId) return undefined;
 
-    const [latestId] = await this.redis.zrevrange(this.indexKey(threadId), 0, 0);
-    if (!latestId) return undefined;
+    // If a specific checkpoint_id was requested, use it directly; otherwise fetch the latest.
+    const requestedId: string | undefined = config.configurable?.checkpoint_id;
+    const checkpointId = requestedId
+      ?? (await this.redis.zrevrange(this.indexKey(threadId), 0, 0))[0];
+    if (!checkpointId) return undefined;
 
-    const raw = await this.redis.get(this.checkpointKey(threadId, latestId));
+    const raw = await this.redis.get(this.checkpointKey(threadId, checkpointId));
     if (!raw) return undefined;
 
-    return this.deserialize(config, raw);
+    // Include the resolved checkpoint_id so that downstream operations
+    // (putWrites, updateState) receive a fully-qualified config.
+    const tupleConfig: RunnableConfig = {
+      configurable: {
+        thread_id: threadId,
+        checkpoint_ns: config.configurable?.checkpoint_ns ?? '',
+        checkpoint_id: checkpointId,
+      },
+    };
+    return this.deserialize(tupleConfig, raw);
   }
 
   async *list(
@@ -132,7 +144,17 @@ export class RedisCheckpointer extends BaseCheckpointSaver {
 
     for (const checkpointId of ids) {
       const raw = await this.redis.get(this.checkpointKey(threadId, checkpointId));
-      if (raw) yield await this.deserialize(config, raw);
+      if (raw) {
+        // Each yielded tuple must carry its own checkpoint_id in config.
+        const tupleConfig: RunnableConfig = {
+          configurable: {
+            thread_id: threadId,
+            checkpoint_ns: config.configurable?.checkpoint_ns ?? '',
+            checkpoint_id: checkpointId,
+          },
+        };
+        yield await this.deserialize(tupleConfig, raw);
+      }
     }
   }
 
